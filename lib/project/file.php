@@ -8,8 +8,8 @@ abstract class Projects_file
 
 	private $display = '';
 	private $file_path = '';
-	private $pos = -1;
-	private $exit_pos = -1;
+	private $pos = 0;
+	private $exit_pos = 0;
 	private $modified_date = '';
 
 	public static function register_file_type($type, $class) {
@@ -31,32 +31,39 @@ abstract class Projects_file
 	}
 
 	public function __construct($id, $meta) {
-		$file_path = self::projects_file_path($id, false);
+		$this->file_path = self::projects_file_path($id, false);
 		if (isset($meta['display']))
-			$this->$dependencies = $meta['display'];
+			$this->display = $meta['display'];
 		if (isset($meta['pos']))
-			$this->$pos = $meta['pos'];
+			$this->pos = $meta['pos'];
+		if (isset($meta['exit_pos']))
+			$this->exit_pos = $meta['exit_pos'];
+		if (isset($meta['modified']))
+			$this->modified_date = $meta['modified'];
 	}
 
 	public function set_exit_pos($pos) {
 		$this->exit_pos = $pos;
 	}
 
-	abstract protected function type();
+	abstract public function type();
 	abstract protected function is_modified($old_meta);
+
+	public function modified_date() { return $this->modified_date; }
+
 	public function check_modified($old_meta) {
 		$modified = $this->is_modified($old_meta);
 		if ($modified || !isset($old['modified']))
-			$this->modified_date = microtime(true);
-		else $this->modified_date = $old['modified'];                    
+			$this->modified_date = time();
+		else $this->modified_date = $old['modified'];             
 	}
 
 	public function meta() {
 		$meta = array('type' => $this->type());
 		if ($this->display) $meta['display'] = $this->display;
-		if ($this->pos >= 0) $meta['pos'] = $this->pos;
-		if ($this->exit_pos >= 0) $meta['exit_pos'] = $this->exit_pos;
-		if ($this->modified_date) $meta['modified'] = $this->modified_date;
+		$meta['pos'] = $this->pos;
+		$meta['exit_pos'] = $this->exit_pos;
+		$meta['modified'] = $this->modified_date;
 		return $meta;
 	}
 }
@@ -67,7 +74,7 @@ class Projects_file_source extends Projects_file
 		parent::__construct($id, $meta);
 	}
 
-	protected function type() { return "source"; }
+	public function type() { return "source"; }
 
 	public function is_modified($old_meta) {
 		return FALSE;

@@ -70,10 +70,10 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
             case DOKU_LEXER_ENTER:
                 $attr = $this->parse($match);
                 $attr['type'] = $this->type();
+                $attr['pos'] = $pos;
                 return array(
                     'command' => 'enter',
-                    'attributes' => $attr, 
-                    'pos' => $pos);
+                    'attributes' => $attr);
             case DOKU_LEXER_EXIT:
                 $PROJECTS_FILE_OCCURRENCE = $ID;
                 return array('command' => 'exit', 'pos' => $pos);
@@ -136,8 +136,8 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         global $ID;
         $format = 'D M d, Y \a\t g:i:s a';
         if (date_default_timezone_get() == 'UTC') $format .= ' e';
-        $updated = date($format, $meta['modified']);
-        $type = $meta['type'];
+        $updated = date($format, $file->modified_date());
+        $type = $file->type();
 
         $actions = $this->actions($meta);
         $xhtml_actions = '<li>Actions: ' . implode(', ', $actions) . '</li>'.DOKU_LF;
