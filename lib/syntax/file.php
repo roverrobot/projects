@@ -102,14 +102,15 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         global $ID;
         switch ($data['command']) {
             case 'enter':
-                $this->project_file = Projects_file::file($ID, $data['attributes']);
+                $renderer->persistent['projectfile'] = $data['attributes'];
+                break;
+
+            case 'exit':
+                $this->project_file = Projects_file::file($ID, $renderer->persistent['projectfile']);
                 // check if the project path exists
                 $ns = getNS($ID);
                 $path = Projects_file::projects_file_path($ns, false);
                 if (!file_exists($path)) mkdir($path, 0700, true);
-                break;
-
-            case 'exit':
                 $this->project_file->set_exit_pos($data['pos']);
 
                 if (isset($renderer->meta['projectfile']))
@@ -155,10 +156,12 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
             case 'enter':
                 global $ID;
                 global $INFO;
-                $meta = $INFO['meta']['projectfile'];
-                $file = Projects_file::file($ID, $meta);
+                if ($this->project_file == NULL) {
+                    $meta = $INFO['meta']['projectfile'];
+                    $this->project_file = Projects_file::file($ID, $meta);
+                }
 
-                $tabs = $this->xhtml_tabs($file);
+                $tabs = $this->xhtml_tabs($this->project_file);
                 $ul = '<ul>';
                 $panels = '';
                 $i = 0;
