@@ -33,5 +33,5 @@ function load_dir($dir, $name=false) {
     $dh->close();
 
     // load scripts in subdirs recursively
-    foreach ($subdirs as $subdir) self::load_dir($subdir, $action);
+    foreach ($subdirs as $subdir) load_dir($subdir, $action);
 }
