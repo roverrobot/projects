@@ -20,6 +20,7 @@ class syntax_plugin_projects_source extends syntax_projectfile
     	$code = $file->code();
     	if (!$code) return '';
 
-    	return '<pre>' . $code->code() . '</pre>' . DOKU_LF;
+    	$editor = Projects_editor::editor($ID, $code->code(), 'text/plain');
+    	return $editor->xhtml('content');
     }
 }
