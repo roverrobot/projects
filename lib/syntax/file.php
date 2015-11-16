@@ -125,13 +125,15 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         }
     }
 
-    protected function actions($meta) {
+    protected function actions($file) {
         global $ID;
         return array(
             'download' => download_button($ID),
             'delete' => delete_button($ID),
             'manage files' => manage_files_button($ID));
     }
+
+    abstract  protected function xhtml_content($file);
 
     protected function xhtml_tabs($file) {
         global $ID;
@@ -140,7 +142,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         $updated = date($format, $file->modified_date());
         $type = $file->type();
 
-        $actions = $this->actions($meta);
+        $actions = $this->actions($file);
         $xhtml_actions = '<li>Actions: ' . implode(', ', $actions) . '</li>'.DOKU_LF;
 
         return array(
@@ -148,7 +150,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 "<li>" . html_wikilink($ID) . 
                 ": $type file, last updated on $updated</li>" . DOKU_LF .
                 $xhtml_actions .
-                '</ul>' . DOKU_LF);
+                '</ul>' . DOKU_LF . $this->xhtml_content($file));
     }
 
     protected function render_xhtml(&$renderer, $data) {

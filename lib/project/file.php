@@ -11,6 +11,7 @@ abstract class Projects_file
 	private $pos = 0;
 	private $exit_pos = 0;
 	private $modified_date = '';
+	private $code = NULL;
 
 	public static function register_file_type($type, $class) {
 		self::$types[$type] = $class;
@@ -40,6 +41,8 @@ abstract class Projects_file
 			$this->exit_pos = $meta['exit_pos'];
 		if (isset($meta['modified']))
 			$this->modified_date = $meta['modified'];
+		if (isset($meta['code']))
+			$this->code = new Projects_code($meta['code']);
 	}
 
 	public function set_exit_pos($pos) {
@@ -53,6 +56,11 @@ abstract class Projects_file
 
 	public function check_modified($old_meta) {
 		$modified = $this->is_modified($old_meta);
+		if (!$modified) {
+			if ($this->code != NULL && isset($meta['code']))
+				$modified = $this->code->is_modified($meta['code']);
+			else $modified = true;
+		}
 		if ($modified || !isset($old['modified']))
 			$this->modified_date = time();
 		else $this->modified_date = $old['modified'];             
@@ -64,8 +72,12 @@ abstract class Projects_file
 		$meta['pos'] = $this->pos;
 		$meta['exit_pos'] = $this->exit_pos;
 		$meta['modified'] = $this->modified_date;
+		if ($this->code) 
+			$meta['code'] = $this->code->meta();
 		return $meta;
 	}
+
+	public function code() { return $this->code; }
 }
 
 class Projects_file_source extends Projects_file
