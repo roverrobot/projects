@@ -22,8 +22,7 @@ class Projects_editor_CodeMirror extends Projects_editor {
     	$id = 'PROJECTS_CODEMIRROR_' . $editor_id;
         $highlight = $this->highlight;
         $content = "<textarea id=\"$id\" require=\"$paths\" mode=\"$highlight\" editor=\"codemirror\" name=\"$editor_id\">" . $this->code . DOKU_LF . '</textarea>' . DOKU_LF;
-        if (auth_quickaclcheck($ID) < AUTH_EDIT || $this->read_only)
-            return $content;
+        if ($this->read_only) return $content;
 
         $form = new Doku_Form(array('id' => $id . '-form', 'editor' => $editor_id));
         $form->addElement(form_makeButton('submit', $do, 'edit', array(

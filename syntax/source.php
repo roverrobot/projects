@@ -17,11 +17,12 @@ class syntax_plugin_projects_source extends syntax_projectfile
 
     protected function xhtml_content($file) {
     	global $ID;
+    	global $REV;
     	$code = $file->code();
     	if (!$code) return '';
 
     	$editor = Projects_editor::editor($ID, $code->code(), $code->highlight());
-    	$editor->read_only = FALSE;
+    	$editor->read_only = (auth_quickaclcheck($ID) < AUTH_EDIT || $REV);
     	$content = $editor->xhtml('content', 'savecontent');
     	return $content;
     }
