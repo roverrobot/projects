@@ -116,7 +116,8 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 if (isset($renderer->meta['projectfile']))
                     $old = $renderer->meta['projectfile'];
                 else $old = array();
-                $this->project_file->check_modified($old);
+                if ($this->project_file->is_modified($old))
+                    $this->project_file->modify();
 
                 $renderer->persistent['projectfile'] = $this->project_file->meta();
                 $renderer->meta['projectfile'] = $renderer->persistent['projectfile'];

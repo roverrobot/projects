@@ -7,7 +7,7 @@ require_once dirname(__FILE__) . '/load.php';
 abstract class Projects_editor {
 	private static $editors = array();
 	abstract static public function name();
-	abstract public function xhtml($editor_id);
+	abstract public function xhtml($editor_id, $do);
 
     abstract protected function get_highlight($file, $code);
 

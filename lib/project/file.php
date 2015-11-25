@@ -1,17 +1,18 @@
 <?php
 
 define(PROJECTS_ROOT, DOKU_INC . '/data/projects/');
+require_once(dirname(__FILE__) . '/code.php');
 
 abstract class Projects_file 
 {
 	private static $types = array();
 
 	private $display = '';
-	private $file_path = '';
 	private $pos = 0;
 	private $exit_pos = 0;
 	private $modified_date = '';
-	private $code = NULL;
+	protected $file_path = '';
+	protected $code = NULL;
 
 	public static function register_file_type($type, $class) {
 		self::$types[$type] = $class;
@@ -50,20 +51,21 @@ abstract class Projects_file
 	}
 
 	abstract public function type();
-	abstract protected function is_modified($old_meta);
+	abstract protected function modify_file();
 
 	public function modified_date() { return $this->modified_date; }
 
-	public function check_modified($old_meta) {
-		$modified = $this->is_modified($old_meta);
-		if (!$modified) {
-			if ($this->code != NULL && isset($meta['code']))
-				$modified = $this->code->is_modified($meta['code']);
-			else $modified = true;
-		}
-		if ($modified || !isset($old['modified']))
-			$this->modified_date = time();
-		else $this->modified_date = $old['modified'];             
+	public function is_modified($old_meta) {
+		if ($this->type != $old_meta['type']) return TRUE;
+		if ($this->code != NULL && isset($old_meta['code']) &&
+			$this->code->is_modified($old_meta['code']))
+			return TRUE;
+		return FALSE;
+	}
+
+	public function modify() {
+		$this->modified_date = time();
+		$this->modify_file();
 	}
 
 	public function meta() {
@@ -78,6 +80,7 @@ abstract class Projects_file
 	}
 
 	public function code() { return $this->code; }
+	public function file_path() { return $this->file_path; }
 }
 
 class Projects_file_source extends Projects_file
@@ -88,8 +91,12 @@ class Projects_file_source extends Projects_file
 
 	public function type() { return "source"; }
 
-	public function is_modified($old_meta) {
-		return FALSE;
+	public function modify_file() {
+		if (file_exists($this->file_path)) {
+			$content = file_get_contents($this->file_path);
+			if ($content == $this->code->code()) return;
+		}
+		file_put_contents($this->file_path, $this->code->code());
 	}
 }
 

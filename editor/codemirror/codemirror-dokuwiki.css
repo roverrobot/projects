@@ -5,6 +5,7 @@
   font-size: 1.2em;
   border: 1px solid;
 }
+
 .CodeMirror-scroll {
   /* Set scrolling behaviour here */
   overflow: auto;
