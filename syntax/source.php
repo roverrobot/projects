@@ -11,18 +11,13 @@ class syntax_plugin_projects_source extends syntax_projectfile
 {
     protected function type() { return 'source'; }
 
-    public function getAllowedTypes() {
-        return array('projectfile_content_tags');
-    }
-
-    protected function xhtml_content($file) {
+    protected function xhtml_code($highlight, $code) {
     	global $ID;
-    	$code = $file->code();
-    	if (!$code) return '';
-
-    	$editor = Projects_editor::editor($ID, $code->code(), $code->highlight());
-    	$editor->read_only = FALSE;
+        global $REV;
+    	$editor = Projects_editor::editor($ID, $code, $highlight);
+    	$editor->read_only = $REV || (auth_quickaclcheck($ID) < AUTH_EDIT);
     	$content = $editor->xhtml('content', 'savecontent');
-    	return $content;
+        $summary = $this->tabs->tab('Summary');
+        $summary->setContent($content);
     }
 }

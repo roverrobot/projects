@@ -1,5 +1,5 @@
 jQuery(function(){
-    jQuery( "#projects_file_tabs" ).tabs();
+    jQuery( "#PROJECTS_TABS" ).tabs();
 });
 
 function inArray(value, array)

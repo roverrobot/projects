@@ -1,18 +1,19 @@
 <?php
 
 define(PROJECTS_ROOT, DOKU_INC . '/data/projects/');
-require_once(dirname(__FILE__) . '/code.php');
 
 abstract class Projects_file 
 {
 	private static $types = array();
 
 	private $display = '';
-	private $pos = 0;
-	private $exit_pos = 0;
+	private $highlight = '';
+	private $entertag = array();
+	private $exittag = array();
+	private $pos = array();
 	private $modified_date = '';
 	protected $file_path = '';
-	protected $code = NULL;
+	protected $code = '';
 
 	public static function register_file_type($type, $class) {
 		self::$types[$type] = $class;
@@ -36,14 +37,18 @@ abstract class Projects_file
 		$this->file_path = self::projects_file_path($id, false);
 		if (isset($meta['display']))
 			$this->display = $meta['display'];
+		if (isset($meta['highligh']))
+			$this->highlight = $meta['highlight'];
+		if (isset($meta['entertag']))
+			$this->entertag = $meta['entertag'];
 		if (isset($meta['pos']))
 			$this->pos = $meta['pos'];
-		if (isset($meta['exit_pos']))
-			$this->exit_pos = $meta['exit_pos'];
+		if (isset($meta['exittag']))
+			$this->exittag = $meta['exittag'];
 		if (isset($meta['modified']))
 			$this->modified_date = $meta['modified'];
 		if (isset($meta['code']))
-			$this->code = new Projects_code($meta['code']);
+			$this->code = $meta['code'];
 	}
 
 	public function set_exit_pos($pos) {
@@ -56,11 +61,10 @@ abstract class Projects_file
 	public function modified_date() { return $this->modified_date; }
 
 	public function is_modified($old_meta) {
-		if ($this->type != $old_meta['type']) return TRUE;
-		if ($this->code != NULL && isset($old_meta['code']) &&
-			$this->code->is_modified($old_meta['code']))
-			return TRUE;
-		return FALSE;
+		if ($this->type() != $old_meta['type']) return TRUE;
+		if ($this->code && !isset($old_meta['code'])) return FALSE;
+		if ($this->code != $old_meta['code']) return TRUE;
+		$this->modified_date = $old_meta['modified'];
 	}
 
 	public function modify() {
@@ -71,11 +75,12 @@ abstract class Projects_file
 	public function meta() {
 		$meta = array('type' => $this->type());
 		if ($this->display) $meta['display'] = $this->display;
+		if ($this->highlight) $meta['highlight'] = $this->highlight;
 		$meta['pos'] = $this->pos;
-		$meta['exit_pos'] = $this->exit_pos;
+		$meta['exittag'] = $this->exittag;
+		$meta['entertag'] = $this->entertag;
 		$meta['modified'] = $this->modified_date;
-		if ($this->code) 
-			$meta['code'] = $this->code->meta();
+		$meta['code'] = $this->code;
 		return $meta;
 	}
 
@@ -94,9 +99,9 @@ class Projects_file_source extends Projects_file
 	public function modify_file() {
 		if (file_exists($this->file_path)) {
 			$content = file_get_contents($this->file_path);
-			if ($content == $this->code->code()) return;
+			if ($content == $this->code) return;
 		}
-		file_put_contents($this->file_path, $this->code->code());
+		file_put_contents($this->file_path, $this->code);
 	}
 }
 
