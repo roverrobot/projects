@@ -25,7 +25,16 @@ abstract class Projects_file
 	    return $path;
 	}
 
-	public static function file($id, $meta) {
+	public static function file($id, $meta=NULL) {
+		if ($meta == NULL) {
+			global $ID;
+			if ($ID == $id) {
+				global $INFO;
+				if (isset($INFO['meta']['projectfile']))
+					$meta = $INFO['meta']['projectfile'];
+				else return NULL;
+			} else $meta = p_get_metadata($id, 'projectfile', FALSE);
+		}
 		if (!is_array($meta)) return NULL;
 		if (!isset($meta['type'])) return NULL;
 		$type = $meta['type'];
@@ -41,8 +50,8 @@ abstract class Projects_file
 			$this->highlight = $meta['highlight'];
 		if (isset($meta['entertag']))
 			$this->entertag = $meta['entertag'];
-		if (isset($meta['pos']))
-			$this->pos = $meta['pos'];
+		if (isset($meta['codepos']))
+			$this->pos = $meta['codepos'];
 		if (isset($meta['exittag']))
 			$this->exittag = $meta['exittag'];
 		if (isset($meta['modified']))
@@ -76,7 +85,7 @@ abstract class Projects_file
 		$meta = array('type' => $this->type());
 		if ($this->display) $meta['display'] = $this->display;
 		if ($this->highlight) $meta['highlight'] = $this->highlight;
-		$meta['pos'] = $this->pos;
+		$meta['codepos'] = $this->pos;
 		$meta['exittag'] = $this->exittag;
 		$meta['entertag'] = $this->entertag;
 		$meta['modified'] = $this->modified_date;
@@ -85,6 +94,7 @@ abstract class Projects_file
 	}
 
 	public function code() { return $this->code; }
+	public function pos() { return $this->pos; }
 	public function file_path() { return $this->file_path; }
 }
 

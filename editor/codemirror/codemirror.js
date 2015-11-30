@@ -29,6 +29,9 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             editor.toggleReadOnly = function() {
                 editor.setOption("readOnly", !editor.getOption("readOnly"));
             }
+            editor.document = function() {
+                return editor.getValue();
+            }
             editor.isDirty = function() {
                 return !editor.isClean();
             }
