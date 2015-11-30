@@ -134,6 +134,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
             case 'code':
                 $renderer->persistent['projectfile']['code'] = $data['code'];
                 $renderer->persistent['projectfile']['codepos'] = $data['pos'];
+                break;
 
             case 'exit':
                 $renderer->persistent['projectfile']['exittag'] = $data['tag'];
@@ -147,8 +148,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 if (isset($renderer->meta['projectfile']))
                     $old = $renderer->meta['projectfile'];
                 else $old = array();
-                if ($project_file->is_modified($old))
-                    $project_file->modify();
+                $project_file->update_from($old);
 
                 $renderer->persistent['projectfile'] = $project_file->meta();
                 $renderer->meta['projectfile'] = $renderer->persistent['projectfile'];
