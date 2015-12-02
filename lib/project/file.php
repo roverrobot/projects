@@ -144,6 +144,7 @@ abstract class Projects_file
 	public function exittag() { return $this->exittag; }
 	public function dependency() { return $this->dependency; }
 	public function file_path() { return $this->file_path; }
+	public function rm() { unlink($this->file_path); }
 }
 
 class Projects_file_source extends Projects_file
