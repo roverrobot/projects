@@ -126,7 +126,7 @@ function add_dependency(deps_update) {
 	if (use) {
 		var code = '<li><span class="dependency" use="'.concat(use).concat('">')
 					.concat(use).concat('</span>(<a href="" use="').concat(use)
-					.concat('" id="remove_dependency">remove</a>)</li>');
+					.concat('" class="remove_dependency action">remove</a>)</li>');
 		var list = jQuery("span[use]");
 		if (list.length == 0) {
 			jQuery(".dependency_list").append(code);
