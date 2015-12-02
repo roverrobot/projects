@@ -53,9 +53,12 @@ abstract class Projects_file
 		return $default;
 	}
 
-	protected static function getArrayFromMeta($meta, $key, $default = array()) {
+	protected static function getArrayFromMeta($meta, $key, $default = array(), $sep = FALSE) {
 		if (isset($meta[$key])) {
 			$a = $meta[$key];
+			if (is_string($a) && $sep) {
+				$a = explode($sep, $a);				
+			}
 			if (is_array($a)) return $a;
 		}
 		if (!is_array($default))
@@ -70,7 +73,16 @@ abstract class Projects_file
 		return array();
 	}
 
-	protected static function getDateFromMeta($meta, $key, $default = FALSE) {
+	public static function getDependencyFromMeta($meta, $key) {
+		$dependency = self::getArrayFromMeta($meta, $key, array(), ';');
+		sort($dependency);
+		$deps = array();
+		foreach($dependency as $dep)
+			if ($dep) $deps[] = $dep;
+		return $deps;
+	}
+
+	public static function getDateFromMeta($meta, $key, $default = FALSE) {
 		if (isset($meta[$key])) {
 			$v = $meta[$key];
 			if (is_numeric($v)) return $v;
@@ -90,7 +102,7 @@ abstract class Projects_file
 		$this->exittag = self::getPosFromMeta($meta, 'exittag');
 		$this->code = self::getStringFromMeta($meta, 'code');
 		$this->modified_date = self::getDateFromMeta($meta, 'modified');
-		$this->dependency = self::getArrayFromMeta($meta, 'use');
+		$this->dependency = self::getDependencyFromMeta($meta, 'use');
 	}
 
 	public function set_exit_pos($pos) {
@@ -106,6 +118,8 @@ abstract class Projects_file
 		$update = ($this->type() != $old_meta['type']);
 		$update |= ($this->code && !isset($old_meta['code']));
 		$update |= ($this->code != $old_meta['code']);
+		$deps = self::getDependencyFromMeta($old_meta, 'use');
+		$update |= ($deps != $this->dependency);
 		if (!$update)
 			$this->modified_date = $old_meta['modified'];
 		else $this->update();
@@ -120,11 +134,15 @@ abstract class Projects_file
 		$meta['entertag'] = $this->entertag;
 		$meta['modified'] = $this->modified_date;
 		$meta['code'] = $this->code;
+		$meta['use'] = $this->dependency;
 		return $meta;
 	}
 
 	public function code() { return $this->code; }
 	public function pos() { return $this->pos; }
+	public function entertag() { return $this->entertag; }
+	public function exittag() { return $this->exittag; }
+	public function dependency() { return $this->dependency; }
 	public function file_path() { return $this->file_path; }
 }
 

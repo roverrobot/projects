@@ -163,13 +163,15 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         switch ($data['command']) {
             case 'enter':
                 global $INFO;
-                $date = $INFO['meta']['projectfile']['modified'];
+                $date = Projects_file::getDateFromMeta($INFO['meta']['projectfile'], 'modified');
                 if (isset($data["attributes"]["highlight"]))
                     $this->highlight = $data["attributes"]["highlight"];
                 $this->tabs = new Projects_XHTMLTabs();
                 $summary = new Projects_SummaryTab($this->tabs, $data["attributes"]);
                 $summary->setUpdate($date);
                 $this->tabs->newTab($summary);
+                $dependency = new Projects_DependencyTab($this->tabs, $data["attributes"]);
+                $this->tabs->newTab($dependency);
                 break;
 
             case 'exit':
