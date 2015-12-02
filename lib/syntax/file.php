@@ -179,7 +179,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 break;
 
             case 'code':
-                $this->xhtml_code($this->highlight, htmlspecialchars($data['code']));
+                $this->xhtml_code($this->highlight, $data['code']);
                 break;
         }
     }
