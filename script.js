@@ -43,9 +43,9 @@ jQuery(function() {
 		form.submit(function() { return editorSubmit(form); });
 		form.parent().children("#action_cancel").hide();
 	});
-	jQuery("input[name=diffconflict").change(function() {
+	jQuery("input[name^=diffaccept_").change(function() {
 		var val = jQuery(this).val();
-		var pick = jQuery(this).parent().parent();
+		var pick = jQuery(this).parent().parent().parent();
 		var orig = pick.children(".diffold");
 		var orig_code = orig.children("pre");
 		var closing = pick.children(".diffnew");
@@ -180,16 +180,14 @@ function editorSubmit(form) {
 	var text = editor.document();
 	editor.toggleReadOnly();
 	if (submit) {
-		var tag = '<textarea class="hidden" name="new">'.concat(text)
-				.concat('</textarea>');
+		var tag = jQuery("<textarea/>").addClass("hidden").attr("name", "new").text(text);
 		form.append(tag);
 		submit = editor.isDirty();
 	} else {
 		editor.focus();
 		var old = form.children("textarea[name=old]");
 		if (old.length == 0) {
-			var tag = '<textarea class="hidden" name="old">'.concat(text)
-				.concat('</textarea>');
+			var tag = jQuery("<textarea/>").addClass("hidden").attr("name", "old").text(text);
 			form.append(tag);
 		}
 	}

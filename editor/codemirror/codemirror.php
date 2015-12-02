@@ -19,7 +19,13 @@ class Projects_editor_CodeMirror extends Projects_editor {
             PROJECTS_EDITOR_CODEMIRROR_JS);
         $paths = implode($files, ':');
         $highlight = $this->highlight;
-        $content = "<textarea class=\"PROJECTS_EDITOR_CODEMIRROR\" id=\"$editor_id\" require=\"$paths\" editor=\"codemirror\" mode=\"$highlight\">" . $this->code . DOKU_LF . '</textarea>' . DOKU_LF;
+        $content = "<textarea class=\"PROJECTS_EDITOR_CODEMIRROR\" 
+            id=\"$editor_id\" 
+            require=\"$paths\" 
+            editor=\"codemirror\" 
+            mode=\"$highlight\">" . 
+            htmlspecialchars($this->code) . DOKU_LF . 
+            '</textarea>' . DOKU_LF;
         $controls = '<div>';
         if (auth_quickaclcheck($ID) >= AUTH_EDIT && !$this->read_only) {
             $controls .= '<div>';

@@ -94,7 +94,7 @@ abstract class Action_ResolveConflict extends Doku_Action {
     abstract protected function now();
     abstract protected function merge($items);
     abstract protected function update($updated);
-    protected function separators() { return $seps=array("\r\n", "\n", "\r"); }
+    protected function separators() { return $seps=array("\r\n", "\n"); }
     protected function unique_item() { return FALSE; }
 
     protected function split($content) {
@@ -168,69 +168,79 @@ abstract class Action_ResolveConflict_Renderer extends Doku_Action_Renderer {
     protected $doc = NULL;
     protected $root = NULL;
 
-    protected function createRadio($name, $value) {
-        $check = $this->doc->createElement('input', $value);
+    protected function createRadio($name, $values, $checked=FALSE) {
+        if (is_string($values)) $value = array($values);
+		$div = $this->doc->createElement('div');
+		$div->setAttribute('class', 'diffradio');
+        $check = $this->doc->createElement('input');
+        if ($checked) $check->setAttribute('checked', 1);
+        $div->appendChild($check);
         $check->setAttribute('type', 'radio');
         $check->setAttribute('name', $name);
-        $check->setAttribute('value', $value);
-        return $check;
+        $check->setAttribute('value', implode('/', $values));
+		$item = $this->doc->createElement('div');
+		$item->setAttribute('class', 'diffradioitem');
+        $div->appendChild($item);
+        foreach($values as $value) {
+			$box = $this->doc->createElement('div', '&nbsp;');
+			$box->setAttribute('class', "bar$value");
+			$item->appendChild($box);
+        }
+		return $div;
     }
 
-    protected function diffOpOutput($op) {
+    protected function pre($text, $pick) {
+    	$empty = ($text === FALSE);
+    	if ($empty) $text = '';
+       	$pre = $this->doc->createElement('pre', htmlspecialchars($text));
+       	if ($empty) $pre->setAttribute('class', 'diffempty');
+        $pre->setAttribute('diffpick', $pick);
+        return $pre;
+    }
+
+    protected function diffOpOutput($op, $index=1) {
         $div = $this->doc->createElement('div');
         $div->setAttribute('class', 'diffblock');
         $this->root->appendChild($div);
         $menu = $this->doc->createElement('div');
         $div->appendChild($menu);
-        if (is_subclass_of($op, _DiffOp)) {
+        $conflict = is_array($op);
+        if (!$conflict) {
             if ($op->from == OLD_OP) $op = $op->reverse();
             $orig = orig($op);
             $closing = closing($op);
             $orig_pick = 0;
             $closing_pick = 1;
-            $check = $this->doc->createElement('input');
-            $check->setAttribute('name', 'diffaccept');
-            $check->setAttribute('type', 'checkbox');
-            $check->setAttribute('checked', "1");
-            $menu->appendChild($check);
-        } else if (is_array($op)) {
+        }
+        else {
             $orig = closing($op[0]);
             $closing = closing($op[1]);
             $orig_pick = -1;
             $closing_pick = -1;
-            $menu->appendChild($this->createRadio('diffconflict', 'old'));
-            $menu->appendChild($this->doc->createTextNode(' '));
-            $menu->appendChild($this->createRadio('diffconflict', 'new'));
-            $menu->appendChild($this->doc->createTextNode(' '));
-            $menu->appendChild($this->createRadio('diffconflict', 'old/new'));
-            $menu->appendChild($this->doc->createTextNode(' '));
-            if ($this->allow_reorder_conflicts())
-                $menu->appendChild($this->createRadio('diffconflict', 'new/old'));
         }
+        $radio_name = "diffaccept_$index";
+        $menu->appendChild($this->createRadio($radio_name, array('old')));
+        $menu->appendChild($this->doc->createTextNode(' '));
+        $new_button = $this->createRadio($radio_name, array('new'), !$conflict);
+        $menu->appendChild($new_button);
+        $menu->appendChild($this->doc->createTextNode(' '));
+        if ($conflict) {
+	        $menu->appendChild($this->createRadio($radio_name, array('old', 'new')));
+	        if ($this->allow_reorder_conflicts()) {
+		        $menu->appendChild($this->doc->createTextNode(' '));
+	            $menu->appendChild($this->createRadio($radio_name, array('new', 'old')));
+        	}
+    	}
         $left = $this->doc->createElement('div');
         $left->setAttribute('class', 'diffold');
         $div->appendChild($left);
-        $code = $this->doc->createElement('pre');
-        $code->setAttribute('diffpick', $orig_pick);
+        $code = $this->pre($orig, $orig_pick);
         $left->appendChild($code);
-        if (is_string($orig)) {
-            $code->appendChild($this->doc->createTextNode($orig));
-        } else {
-            $code->setAttribute('class', 'diffempty');
-            $code->appendChild($this->doc->createTextNode(''));
-        }
         $right = $this->doc->createElement('div', ' ');
         $right->setAttribute('class', 'diffnew');
         $div->appendChild($right);
-        $code = $this->doc->createElement('pre');
-        $code->setAttribute('diffpick', $closing_pick);
+        $code = $this->pre($closing, $closing_pick);
         $right->appendChild($code);
-        if (is_string($closing)) {
-            $code->appendChild($this->doc->createTextNode($closing));
-        } else {
-            $code->setAttribute('class', 'diffempty');
-            $code->appendChild($this->doc->createTextNode(''));
-        }
     }
 
     public function xhtml() {
@@ -239,6 +249,7 @@ abstract class Action_ResolveConflict_Renderer extends Doku_Action_Renderer {
         $this->root = $this->doc->createElement('div');
         $this->doc->appendChild($this->root);
         $text = '';
+        $i = 1;
         foreach ($MERGED_DIFF as $op) {
             if (!is_array($op) && $op->from == SAME_OP) {
                 $text .= orig($op);
@@ -247,13 +258,12 @@ abstract class Action_ResolveConflict_Renderer extends Doku_Action_Renderer {
             if ($text) {
                 $div = $this->doc->createElement('div');
                 $div->setAttribute('class', 'diffcopy');
-                $code = $this->doc->createElement('pre', $text);
-                $code->setAttribute('diffpick', 1);
+                $code = $this->pre($text, 1);
                 $div->appendChild($code);
                 $this->root->appendChild($div);
                 $text = '';
             }
-            $this->diffOpOutput($op);
+            $this->diffOpOutput($op, $i++);
         }
         echo $this->doc->saveXML($this->root);
         $form = new Doku_Form(array('id'=>'diff_form'));
