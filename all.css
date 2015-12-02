@@ -44,4 +44,7 @@
 	background: Coral;
 }
 
-
+.dependency {
+	padding: 10px;
+	color: black;
+}
