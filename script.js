@@ -106,7 +106,6 @@ jQuery(function() {
 				closing = closing.concat('\n').concat(code);
 		});
 		var content = jQuery(this).children().children('input[name=new]');
-		alert(closing);
 		content.val(closing);
 	});
 	var deps_update = jQuery("#dependency_update_controls");
