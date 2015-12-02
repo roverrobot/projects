@@ -9,7 +9,7 @@ require.config({
 }); 
 
 require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
-	jQuery("textarea[editor=codemirror]").each( function() {
+	jQuery(".PROJECTS_EDITOR_CODEMIRROR").each( function() {
 		var text = jQuery(this);
 		var mode = text.attr("mode");
 		if (!mode) {
@@ -35,11 +35,9 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             editor.isDirty = function() {
                 return !editor.isClean();
             }
-            if (!document.hasOwnProperty("editors")) {
+            if (!document.hasOwnProperty("editors"))
             	document.editors = {};
-                document.editors[text.attr("name")] = editor;
-            }
-            else document.editors[text.attr("name")] = editor;
+            document.editors[text.attr("id")] = editor;
         });
 	});
 });

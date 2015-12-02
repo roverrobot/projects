@@ -14,22 +14,19 @@ class Projects_editor_CodeMirror extends Projects_editor {
 
 	public function xhtml($editor_id, $do) {
         $files = array(
-            PROJECTS_EDITOR_REQUIRE_JS, 
             PROJECTS_EDITOR_CODEMIRROR_CSS, 
             PROJECTS_EDITOR_CODEMIRROR_DW_CSS,
             PROJECTS_EDITOR_CODEMIRROR_JS);
         $paths = implode($files, ':');
-    	$id = 'PROJECTS_CODEMIRROR_' . $editor_id;
         $highlight = $this->highlight;
-        $content = "<textarea id=\"$id\" require=\"$paths\" mode=\"$highlight\" editor=\"codemirror\" name=\"$editor_id\">" . $this->code . DOKU_LF . '</textarea>' . DOKU_LF;
-        if (auth_quickaclcheck($ID) < AUTH_EDIT || $this->read_only)
-            return $content;
-
-        $form = new Doku_Form(array('id' => $id . '-form', 'editor' => $editor_id));
-        $form->addElement(form_makeButton('submit', $do, 'edit', array(
-            'id' => "$editor_id-edit")));
-        $form->addElement(form_makeButton('cancel', '', 'cancel', array('id' => $editor_id . '-cancel')));
-        $form->addElement($content);
-        return $form->getForm();
+        $content = "<textarea class=\"PROJECTS_EDITOR_CODEMIRROR\" id=\"$editor_id\" require=\"$paths\" editor=\"codemirror\" mode=\"$highlight\">" . $this->code . DOKU_LF . '</textarea>' . DOKU_LF;
+        $controls = '<div>';
+        if (auth_quickaclcheck($ID) >= AUTH_EDIT && !$this->read_only) {
+            $controls .= '<div>';
+            $form = new Doku_Form(array('id' => 'editor_submit_form', 'editor' => $editor_id));
+            $form->addElement(form_makeButton('submit', $do, 'edit', array('id' => 'editor_submit_button')));
+            $controls .= $form->getForm() . cancel_button() . '</div>';
+        }
+        return $controls . $content . '</div>';
 	}
 }
