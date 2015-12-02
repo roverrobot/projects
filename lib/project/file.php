@@ -114,15 +114,17 @@ abstract class Projects_file
 
 	public function modified_date() { return $this->modified_date; }
 
-	public function update_from($old_meta) {
-		$update = ($this->type() != $old_meta['type']);
-		$update |= ($this->code && !isset($old_meta['code']));
-		$update |= ($this->code != $old_meta['code']);
-		$deps = self::getDependencyFromMeta($old_meta, 'use');
-		$update |= ($deps != $this->dependency);
-		if (!$update)
-			$this->modified_date = $old_meta['modified'];
-		else $this->update();
+	public function update_from($old) {
+		if ($old) {
+			$update = ($this->type() != $old->type());
+			$update |= ($this->code != $old->code());
+			$update |= ($this->dependency != $old->dependency());
+			if (!$update) {
+				$this->modified_date = $old->modified_date();
+				return;
+			}
+		}
+		$this->update();
 	}
 
 	public function meta() {

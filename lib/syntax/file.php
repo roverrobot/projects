@@ -131,31 +131,28 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         global $ID;
         switch ($data['command']) {
             case 'enter':
-                $renderer->persistent['projectfile'] = $data['attributes'];
-                $renderer->persistent['projectfile']['entertag'] = $data['tag'];
+                $renderer->meta['projectfile'] = $data['attributes'];
+                $renderer->meta['projectfile']['entertag'] = $data['tag'];
                 break;
 
             case 'code':
-                $renderer->persistent['projectfile']['code'] = $data['code'];
-                $renderer->persistent['projectfile']['codepos'] = $data['pos'];
+                $renderer->meta['projectfile']['code'] = $data['code'];
+                $renderer->meta['projectfile']['codepos'] = $data['pos'];
                 break;
 
             case 'exit':
-                $renderer->persistent['projectfile']['exittag'] = $data['tag'];
-                $project_file = Projects_file::file($ID, $renderer->persistent['projectfile']);
+                $renderer->meta['projectfile']['exittag'] = $data['tag'];
+                $project_file = Projects_file::file($ID, $renderer->meta['projectfile']);
                 // check if the project path exists
                 $ns = getNS($ID);
                 $path = Projects_file::projects_file_path($ns, false);
                 if (!file_exists($path)) mkdir($path, 0700, true);
                 $project_file->set_exit_pos($data['pos']);
 
-                if (isset($renderer->meta['projectfile']))
-                    $old = $renderer->meta['projectfile'];
-                else $old = array();
-                $project_file->update_from($old);
+                global $OLD_PROJECTS_FILE;
+                $project_file->update_from($OLD_PROJECTS_FILE);
 
-                $renderer->persistent['projectfile'] = $project_file->meta();
-                $renderer->meta['projectfile'] = $renderer->persistent['projectfile'];
+                $renderer->meta['projectfile'] = $project_file->meta();
 
                 break;
         }
