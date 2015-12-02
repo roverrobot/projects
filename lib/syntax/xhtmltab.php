@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__FILE__) . '/xhtml.php';
+require_once dirname(__FILE__) . '/../project/file.php';
 
 class Projects_XHTMLTabs {
 	private $dom = NULL;
@@ -9,6 +10,10 @@ class Projects_XHTMLTabs {
 	protected $panels = array();
 
 	public function importNode($node) { return $this->dom->importNode($node, TRUE); }
+	public function newText($text) {
+		return $this->dom->createTextNode($text);
+	}
+
 	public function newElement($name, $attributes=array(), $value = NULL) {
 		$e = $this->dom->createElement($name, $value);
 		foreach ($attributes as $attr => $value)
@@ -57,6 +62,14 @@ class Projects_XHTMLTab {
 	protected function newElement($name, $attributes=array(), $value = NULL) {
 		return $this->parent->newElement($name, $attributes, $value);
 	}
+	protected function newText($text) {
+		return $this->parent->newText($text);
+	}
+
+	protected function loadElement($text) {
+		$dom = DOMDocument::loadXML($text);
+		return $this->importNode($dom->documentElement);
+	}
 
 	public function __construct($parent, $name) {
 		$this->parent = $parent;
@@ -75,11 +88,6 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
         if (date_default_timezone_get() == 'UTC') $format .= ' e';
         $updated = date($format, $date);
 		$this->info->appendChild($this->newElement('span', array(), $updated));
-	}
-
-	protected function loadElement($text) {
-		$dom = DOMDocument::loadXML($text);
-		return $this->importNode($dom->documentElement);
 	}
 
 	public function newAction($action) {
@@ -117,8 +125,51 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
             $this->newAction(delete_button($ID));
 
 		$this->content = $this->newElement('div', array(
-			'class' => 'PROJECTS_content', 
 			'id' => 'PROJECTS_content'));
 		$this->root->appendChild($this->content);
+	}	
+}
+
+class Projects_DependencyTab extends Projects_XHTMLTab {
+	public function __construct($parent, $attr) {
+		global $ID;
+		global $REV;
+
+		parent::__construct($parent, 'Dependency');
+		$list = $this->newElement('ul', array('class' => 'dependency_list'));
+		$this->root->appendChild($list);
+
+		$deps = Projects_file::getDependencyFromMeta($attr, 'use');
+		$edit = (!$REV && auth_quickaclcheck($ID) >= AUTH_EDIT);
+		if ($edit) {
+			$li = $this->newElement('li');
+			$list->appendChild($li);
+			$span = $this->newElement('span', array('class' => 'dependency'));
+			$li->appendChild($span);
+			$input = $this->newElement('input', array('id' => 'new_dependency_name'));
+			$span->appendChild($input);
+			$input = $this->newElement('a', array('id' => 'add_dependency', 'href' => '', 'class' => 'action'), 'add');
+			$li->appendChild($input);
+		}
+		foreach ($deps as $dep) {
+			$li = $this->newElement('li');
+			$list->appendChild($li);
+			$span = $this->newElement('span', array('use' => $dep, 'class' => 'dependency'));
+			$li->appendChild($span);
+			$use = $this->loadElement(html_wikilink($dep));
+			$span->appendChild($use);
+			$li->appendChild($this->newText('('));
+			$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
+			$li->appendChild($input);
+			$li->appendChild($this->newText(')'));
+		}
+		$controls = $this->newElement('div', array('id' => 'dependency_update_controls'));
+		$this->root->appendChild($controls);
+		$form = new Doku_Form(array('id' => 'dependency_update_form'));
+        $form->addHidden('new', '');
+        $form->addHidden('old', '');
+        $form->addElement(form_makeButton('submit', 'update_dependency', 'update', array('id' => 'update_dependency')));
+		$controls->appendChild($this->loadElement($form->getForm()));
+		$controls->appendChild($this->loadElement(cancel_button()));
 	}	
 }

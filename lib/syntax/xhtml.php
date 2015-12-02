@@ -1,5 +1,11 @@
 <?php
 
+function cancel_button() {
+    $form = new Doku_Form(array('id' => 'action_cancel'));
+    $form->addElement(form_makeButton('submit', 'show', 'cancel'));
+    return $form->getForm();
+}
+
 function xhtml_action($name, $action, $title,
     $hidden_fields = array(), $inputs = array(), $script_condition='') {
     $hidden_fields['do'] = $action;

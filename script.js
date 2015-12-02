@@ -1,6 +1,4 @@
-jQuery(function(){
-    jQuery( "#PROJECTS_TABS" ).tabs();
-});
+/* DOKUWIKI:include_once editor/require.js */
 
 function inArray(value, array)
 {
@@ -30,21 +28,20 @@ function loadEditor(files)
 }
 
 jQuery(function() {
+    jQuery( "#PROJECTS_TABS" ).tabs();
+
 	var editors = [];
-	jQuery("textarea").each (function() {
+	jQuery("textarea[editor]").each (function() {
 		var editor = jQuery(this).attr("editor");
 		if (editor && !inArray(editor, editors)) {
 			var files = jQuery(this).attr("require");
 			loadEditor(files);
 		}
 	});
-	jQuery("form").each(function() {
-		var id = jQuery(this).attr("editor");
-		if (!id) return;
-		jQuery("#".concat(id).concat('-cancel')).hide();
-		jQuery(this).submit(function() {
-			return editorSubmit(jQuery(this));
-		});
+	jQuery("#editor_submit_form").each(function() {
+		var form = jQuery(this);
+		form.submit(function() { return editorSubmit(form); });
+		form.parent().children("#action_cancel").hide();
 	});
 	jQuery("input[name=diffconflict").change(function() {
 		var val = jQuery(this).val();
@@ -108,39 +105,116 @@ jQuery(function() {
 			if (code.length > 0) 
 				closing = closing.concat('\n').concat(code);
 		});
-		var content = jQuery(this).children().children('input[name=content]');
+		var content = jQuery(this).children().children('input[name=new]');
+		alert(closing);
 		content.val(closing);
+	});
+	var deps_update = jQuery("#dependency_update_controls");
+	deps_update.hide();
+	jQuery("#add_dependency").click(function () { add_dependency(deps_update); return false; });
+	jQuery(".remove_dependency").click(function() {
+		enable_dependency_update(deps_update);
+		remove_dependency(jQuery(this));
+		return false;
 	});
 });
 
+function add_dependency(deps_update) {
+	enable_dependency_update(deps_update);
+	var dep = jQuery("#new_dependency_name");
+	var use = dep.val();
+	dep.val('');
+	if (use) {
+		var code = '<li><span class="dependency" use="'.concat(use).concat('">')
+					.concat(use).concat('</span>(<a href="" use="').concat(use)
+					.concat('" id="remove_dependency">remove</a>)</li>');
+		var list = jQuery("span[use]");
+		if (list.length == 0) {
+			jQuery(".dependency_list").append(code);
+		} else {
+			var added = false;
+			var dup = false;
+			list.each(function() {
+				var id = jQuery(this).attr("use");
+				if (id == use) {
+					dup = true;
+					return false;
+				}
+				if (id && use < id) {
+					var li = jQuery(this).parent();
+					li.before(code);
+					added = true;
+					return false;
+				}
+			});
+			if (dup) return;
+			if (!added) list.last().parent().after(code);
+		}
+		jQuery("#remove_dependency").click(function () {
+			remove_dependency(jQuery(this)); 
+			return false;
+		});
+	}
+}
+
+function remove_dependency(button){
+	var use = button.attr('use');
+	if (use) {
+		var match = "span[use=".concat(use).concat("]");
+		jQuery(match).parent().remove();
+	}
+	jQuery("#remove_dependency").click(function () {
+		remove_dependency(jQuery(this)); 
+		return false;
+	});
+}
+
 function editorSubmit(form) {
 	var id = form.attr("editor");
-	var match = "#".concat(id).concat("-edit");
-	var button = jQuery(match);
-	if (!button) return false;
-	var div = jQuery("#".concat(id).concat("-cancel"));
-	if (!div) return false;
-	var submit = false;
+	button = form.children().children("#editor_submit_button");
+	if (button.length == 0) return false;
+	submit = button.html() == "save";
+	if (submit) button.html('edit'); else button.html('save');
+	var cancel = form.parent().children("#action_cancel");
+	if (submit) cancel.hide(); else cancel.show();
 	var editor = document.editors[id];
+	var text = editor.document();
 	editor.toggleReadOnly();
-	editor.focus();
-	var old_match = "PROJECT_FILE_old_".concat(id);
-	var old = jQuery("#".concat(old_match));
-	if (button.html() == "edit") {
-		button.html("save");
-		div.show();
-		var text = editor.document();
+	if (submit) {
+		var tag = '<textarea class="hidden" name="new">'.concat(text)
+				.concat('</textarea>');
+		form.append(tag);
+		submit = editor.isDirty();
+	} else {
+		editor.focus();
+		var old = form.children("textarea[name=old]");
 		if (old.length == 0) {
-			var tag = '<textarea style="visibility: hidden;" id="'.concat(old_match).concat('" name="old">')
-				.concat(text)
+			var tag = '<textarea class="hidden" name="old">'.concat(text)
 				.concat('</textarea>');
 			form.append(tag);
 		}
 	}
-	else {
-		button.html("edit");
-		div.hide();
-		submit = editor.isDirty();
-	}
 	return submit;
 }
+
+function get_dependencies() {
+	var deps = "";
+	jQuery("span[use]").each(function(){
+		var dep = jQuery(this).attr("use");
+		deps = (deps) ? deps.concat("\n").concat(dep) : dep;
+	});
+	return deps;
+}
+
+function enable_dependency_update(deps_update) {
+	if (deps_update.is(":visible")) return;
+	deps_update.show();
+	var deps = get_dependencies();
+	var form = deps_update.children("#dependency_update_form");
+	form.children().children("input[name=old]").val(deps);
+	deps_update.submit(function() {
+		var deps = get_dependencies();
+		form.children().children("input[name=new]").val(deps);
+	});
+}
+ 
