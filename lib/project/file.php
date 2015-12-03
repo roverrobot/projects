@@ -124,6 +124,9 @@ abstract class Projects_file
 				return;
 			}
 		}
+		// if the dir does not exist, create
+		$dir = dirname($this->file_path);
+		if (!file_exists($dir)) mkdir($dir, 0700, TRUE); 
 		$this->update();
 	}
 
