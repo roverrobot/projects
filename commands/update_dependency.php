@@ -8,7 +8,11 @@ class Action_UpdateDependency extends Action_ResolveConflict {
 
     protected function now() {
         if (!$this->file) return array();
-        return $this->file->dependency();
+        $deps = $this->file->dependency();
+        $now = array();
+        foreach ($deps as $dep => $auto)
+            if (!$auto) $now[] = $dep;
+        return $now;
     }
 
     protected function separators() { return $seps=array("\r\n", "\n", "\r", ';'); }

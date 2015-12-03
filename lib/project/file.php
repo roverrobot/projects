@@ -112,7 +112,7 @@ abstract class Projects_file
 		sort($dependency);
 		$deps = array();
 		foreach($dependency as $dep)
-			if ($dep) $deps[] = $dep;
+			if ($dep) $deps[$dep] = FALSE;
 		return $deps;
 	}
 
@@ -156,11 +156,15 @@ abstract class Projects_file
 
 	public function modified_date() { return $this->modified_date; }
 
+	protected function check_dependency($old) {
+		return $this->dependency == $old->dependency();
+	}
+
 	public function update_from($old) {
 		if ($old) {
 			$update = ($this->type() != $old->type());
 			$update |= ($this->code != $old->code());
-			$update |= ($this->dependency != $old->dependency());
+			$update |= $this->check_dependency($old);
 			if (!$update) {
 				$this->modified_date = $old->modified_date();
 				return;
@@ -181,7 +185,10 @@ abstract class Projects_file
 		$meta['entertag'] = $this->entertag;
 		$meta['modified'] = $this->modified_date;
 		$meta['code'] = $this->code;
-		$meta['use'] = $this->dependency;
+		$deps = array();
+		foreach ($this->dependency as $dep => $auto)
+			if (!$auto) $deps[] = $dep;
+		$meta['use'] = implode(';', $deps);
 		return $meta;
 	}
 

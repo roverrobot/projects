@@ -139,7 +139,8 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 		$list = $this->newElement('ul', array('class' => 'dependency_list'));
 		$this->root->appendChild($list);
 
-		$deps = Projects_file::getDependencyFromMeta($attr, 'use');
+		$file = Projects_file::file($ID);
+		$deps = $file->dependency();
 		$edit = (!$REV && auth_quickaclcheck($ID) >= AUTH_EDIT);
 		if ($edit) {
 			$li = $this->newElement('li');
@@ -151,17 +152,21 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 			$input = $this->newElement('a', array('id' => 'add_dependency', 'href' => '', 'class' => 'action'), 'add');
 			$li->appendChild($input);
 		}
-		foreach ($deps as $dep) {
+		foreach ($deps as $dep => $auto) {
 			$li = $this->newElement('li');
 			$list->appendChild($li);
 			$span = $this->newElement('span', array('use' => $dep, 'class' => 'dependency'));
 			$li->appendChild($span);
 			$use = $this->loadElement(html_wikilink($dep));
 			$span->appendChild($use);
-			$li->appendChild($this->newText('('));
-			$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
-			$li->appendChild($input);
-			$li->appendChild($this->newText(')'));
+			if ($auto)
+				$li->appendChild($this->newText('(automatic)'));
+			else {
+				$li->appendChild($this->newText('('));
+				$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
+				$li->appendChild($input);
+				$li->appendChild($this->newText(')'));
+			}
 		}
 		$controls = $this->newElement('div', array('id' => 'dependency_update_controls'));
 		$this->root->appendChild($controls);
