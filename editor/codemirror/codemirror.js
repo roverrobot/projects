@@ -17,9 +17,10 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
 			var dots = id.split(".");
 			var ext = dots[dots.length-1];
             var meta = CodeMirror.findModeByExtension(ext);
-            mode = meta.mode;
+            if (meta) mode = meta.mode;
 		}
-		var module = "codemirror/mode/".concat(mode).concat("/").concat(mode);
+		var module = "";
+        if (mode) module = "codemirror/mode/".concat(mode).concat("/").concat(mode);
         require([module], function() {
             editor = CodeMirror.fromTextArea(text[0], {
             	lineNumbers: true,
