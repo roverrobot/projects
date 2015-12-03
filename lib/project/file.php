@@ -46,6 +46,37 @@ abstract class Projects_file
 		return new self::$types[$type]($id, $meta);
 	}
 
+	public static function project_files($ns) {
+	    $dir_path = DOKU_INC . 'data/pages/' . implode('/', explode(':', $ns));
+	    $dh = @dir($dir_path);
+	    if (!$dh) return array(array(), array());
+	    $files = array();
+	    $dirs = array();
+
+	    while (false !== ($entry = $dh->read())) {
+	        if ($entry[0] == '.') continue;
+
+	        if (is_dir($dir_path . '/' . $entry)) {
+	            $id = ($ns) ? "$ns:$entry" : $entry;
+	            array_push($dirs, $id);
+	            continue;
+	        }
+
+	        if (substr($entry, -4) != '.txt') continue;
+
+	        $entry = substr($entry, 0, strlen($entry)-4);
+	        if (!$ns)
+	            $id = $entry;
+	        else $id = $ns . ':' . $entry;
+
+	        $file = self::file($id);
+	        if ($file) $files[$id] = $file;
+	    }
+
+	    $dh->close();
+	    return array($files, $dirs);
+	}
+
 	protected static function getStringFromMeta($meta, $key, $default = '') {
 		if (isset($meta[$key])) {
 			$s = $meta[$key];
