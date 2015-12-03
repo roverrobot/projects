@@ -2,6 +2,8 @@
 
 define(PROJECTS_ROOT, DOKU_INC . '/data/projects/');
 
+require_once dirname(__FILE__) . '/../analyzer.php';
+
 abstract class Projects_file 
 {
 	private static $types = array();
@@ -90,10 +92,12 @@ abstract class Projects_file
 	protected static function getArrayFromMeta($meta, $key, $default = array(), $sep = FALSE) {
 		if (isset($meta[$key])) {
 			$a = $meta[$key];
-			if (is_string($a) && $sep) {
-				$a = explode($sep, $a);				
-			}
 			if (is_array($a)) return $a;
+			if (is_string($a) && $sep) {
+				$a = explode($sep, $a);
+				$deps = array();
+				foreach ($a as $dep) $deps[$dep] = FALSE;
+			}
 		}
 		if (!is_array($default))
 			$default = array();
@@ -109,11 +113,8 @@ abstract class Projects_file
 
 	public static function getDependencyFromMeta($meta, $key) {
 		$dependency = self::getArrayFromMeta($meta, $key, array(), ';');
-		sort($dependency);
-		$deps = array();
-		foreach($dependency as $dep)
-			if ($dep) $deps[$dep] = FALSE;
-		return $deps;
+		ksort($dependency);
+		return $dependency;
 	}
 
 	public static function getDateFromMeta($meta, $key, $default = FALSE) {
@@ -131,6 +132,8 @@ abstract class Projects_file
 		$this->id = $id;
 		$this->file_path = self::projects_file_path($id, false);
 		list($this->file_extension, $this->mimetype) = mimetype($id);
+		if (!$this->file_extension)
+			$this->file_extension = pathinfo($this->file_path, PATHINFO_EXTENSION);
 		if ((!$this->mimetype || $this->mimetype == 'text/plain' ||
 			$this->mimetype == 'application/oct-stream') && file_exists($this->file_path))
 		{
@@ -153,6 +156,7 @@ abstract class Projects_file
 
 	abstract public function type();
 	abstract protected function update();
+	abstract public function content();
 
 	public function modified_date() { return $this->modified_date; }
 
@@ -161,6 +165,10 @@ abstract class Projects_file
 	}
 
 	public function update_from($old) {
+		// auto dependency
+		$deps = Projects_Analyzer::auto_dependency($this);
+		foreach ($deps as $dep)
+			$this->dependency[$dep] = TRUE;
 		if ($old) {
 			$update = ($this->type() != $old->type());
 			$update |= ($this->code != $old->code());
@@ -185,10 +193,7 @@ abstract class Projects_file
 		$meta['entertag'] = $this->entertag;
 		$meta['modified'] = $this->modified_date;
 		$meta['code'] = $this->code;
-		$deps = array();
-		foreach ($this->dependency as $dep => $auto)
-			if (!$auto) $deps[] = $dep;
-		$meta['use'] = implode(';', $deps);
+		$meta['use'] = $this->dependency;
 		return $meta;
 	}
 
@@ -218,6 +223,7 @@ class Projects_file_source extends Projects_file
 	public function type() { return "source"; }
 
 	public function update() {
+		// save to file
 		if (file_exists($this->file_path)) {
 			$content = file_get_contents($this->file_path);
 			if ($content == $this->code) return;
@@ -226,6 +232,10 @@ class Projects_file_source extends Projects_file
 		// upload as media
 		io_createNameSpace($this->id, 'media');
 		copy($this->file_path, mediaFN($this->id));
+	}
+
+	public function content() {
+		return $this->code;
 	}
 }
 
