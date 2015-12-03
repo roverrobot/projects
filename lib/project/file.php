@@ -6,6 +6,9 @@ abstract class Projects_file
 {
 	private static $types = array();
 
+	protected $id = '';
+	protected $file_extension = '';
+	protected $mimetype = '';
 	private $display = '';
 	private $highlight = '';
 	private $entertag = array();
@@ -94,7 +97,14 @@ abstract class Projects_file
 	}
 
 	public function __construct($id, $meta) {
+		$this->id = $id;
 		$this->file_path = self::projects_file_path($id, false);
+		list($this->file_extension, $this->mimetype) = mimetype($id);
+		if (!$this->mimetype || $this->mimetype == 'text/plain' ||
+			$this->mimetype == 'application/oct-stream') {
+			$finfo = new finfo();
+			$this->mimetype = $finfo->file($this->file_path, FILEINFO_MIME_TYPE);
+		}
 		$this->display = self::getStringFromMeta($meta, 'display');
 		$this->highlight = self::getStringFromMeta($meta, 'highlight');
 		$this->entertag = self::getPosFromMeta($meta, 'entertag');
@@ -143,6 +153,9 @@ abstract class Projects_file
 		return $meta;
 	}
 
+	public function id() { return $this->id; }
+	public function mimetype() { return $this->mimetype; }
+	public function file_extension() { return $this->file_extension; }
 	public function code() { return $this->code; }
 	public function pos() { return $this->pos; }
 	public function entertag() { return $this->entertag; }
@@ -166,7 +179,16 @@ class Projects_file_source extends Projects_file
 			if ($content == $this->code) return;
 		}
 		file_put_contents($this->file_path, $this->code);
-	}
+		// upload as media
+		$data = array();
+		$data[0] = $this->file_path;
+		$data[1] = mediaFN($this->id);
+		$data[2] = $this->id;
+		$data[3] = $this->mimetype;
+		$data[4] = TRUE;
+		$data[5] = 'copy';
+		// trigger event
+		return trigger_event('MEDIA_UPLOAD_FINISH', $data, '_media_upload_action', true);	}
 }
 
 Projects_file::register_file_type("source", Projects_file_source);
