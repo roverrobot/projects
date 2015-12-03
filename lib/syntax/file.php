@@ -11,9 +11,6 @@ require_once dirname(__FILE__) . '/../../lib/syntax/xhtmltab.php';
 
 abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
 {
-    private static $called = FALSE;
-    public static function called() { return self::$called; }
-
     abstract protected function type();
 
     protected $tabs = array();
@@ -127,7 +124,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
     }
 
     protected function render_meta(&$renderer, $data) {
-        self::$called = TRUE;
         global $ID;
         switch ($data['command']) {
             case 'enter':
