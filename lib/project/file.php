@@ -100,8 +100,9 @@ abstract class Projects_file
 		$this->id = $id;
 		$this->file_path = self::projects_file_path($id, false);
 		list($this->file_extension, $this->mimetype) = mimetype($id);
-		if (!$this->mimetype || $this->mimetype == 'text/plain' ||
-			$this->mimetype == 'application/oct-stream') {
+		if ((!$this->mimetype || $this->mimetype == 'text/plain' ||
+			$this->mimetype == 'application/oct-stream') && file_exists($this->file_path))
+		{
 			$finfo = new finfo();
 			$this->mimetype = $finfo->file($this->file_path, FILEINFO_MIME_TYPE);
 		}
@@ -162,7 +163,12 @@ abstract class Projects_file
 	public function exittag() { return $this->exittag; }
 	public function dependency() { return $this->dependency; }
 	public function file_path() { return $this->file_path; }
-	public function rm() { unlink($this->file_path); }
+	public function rm() {
+		if (file_exists($this->file_path))
+			unlink($this->file_path);
+		$media = mediaFN($this->id);
+		if (file_exists($media)) unlink($media);
+	}
 }
 
 class Projects_file_source extends Projects_file
@@ -180,15 +186,9 @@ class Projects_file_source extends Projects_file
 		}
 		file_put_contents($this->file_path, $this->code);
 		// upload as media
-		$data = array();
-		$data[0] = $this->file_path;
-		$data[1] = mediaFN($this->id);
-		$data[2] = $this->id;
-		$data[3] = $this->mimetype;
-		$data[4] = TRUE;
-		$data[5] = 'copy';
-		// trigger event
-		return trigger_event('MEDIA_UPLOAD_FINISH', $data, '_media_upload_action', true);	}
+		io_createNameSpace($this->id, 'media');
+		copy($this->file_path, mediaFN($this->id));
+	}
 }
 
 Projects_file::register_file_type("source", Projects_file_source);
