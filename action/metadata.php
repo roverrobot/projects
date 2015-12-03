@@ -32,7 +32,8 @@ class action_plugin_projects_metadata extends DokuWiki_Action_Plugin {
     function rendered(&$event, $param) {
         if (isset($event->data['persistent']['projectfile']))
             unset($event->data['persistent']['projectfile']);
-        if (isset($event->data['current']['projectfile'])) return;
+        if (isset($event->data['current']['projectfile']) && $event->data['current']['projectfile'])
+            return;
         global $OLD_PROJECTS_FILE;
         if ($OLD_PROJECTS_FILE) $OLD_PROJECTS_FILE->rm();
 	}
