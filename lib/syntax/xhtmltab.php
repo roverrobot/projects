@@ -170,7 +170,7 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 			$input = $this->newElement('a', array('id' => 'add_dependency', 'href' => '', 'class' => 'action'), 'add');
 			$li->appendChild($input);
 		}
-		foreach ($deps as $dep => $auto) $this->addDependence($dep, $auto);
+		if ($deps) foreach ($deps as $dep => $auto) $this->addDependence($dep, $auto);
 		if ($this->editable) {
 			$controls = $this->newElement('div', array('id' => 'dependency_update_controls'));
 			$this->root->appendChild($controls);

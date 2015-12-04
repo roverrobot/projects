@@ -253,11 +253,15 @@ class Projects_file_generated extends Projects_file
 
 	protected function dependency_changed($old) {
 		$deps = array();
-		foreach ($this->dependency as $dep => $auto)
-			if (!$auto) $deps[] = $dep;
+		if ($this->dependency) {
+			foreach ($this->dependency as $dep => $auto)
+				if (!$auto) $deps[] = $dep;
+		}
 		$old_deps = array();
-		foreach ($old->dependency as $dep => $auto)
-			if (!$auto) $old_deps[] = $dep;
+		if ($old->dependency()) {
+			foreach ($old->dependency() as $dep => $auto)
+				if (!$auto) $old_deps[] = $dep;
+		}
 		return $deps != $old_deps;
 	}
 
