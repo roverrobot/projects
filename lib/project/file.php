@@ -117,7 +117,7 @@ abstract class Projects_file
 				}
 			}
 		}
-		ksort($dependency);
+		if ($dependency) ksort($dependency);
 		return $dependency;
 	}
 
