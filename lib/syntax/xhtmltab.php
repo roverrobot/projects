@@ -40,9 +40,8 @@ class Projects_XHTMLTabs {
 
 	public function __construct() {
 		$this->dom = new DOMDocument();
-		$this->root = $this->newElement('div', array(
-			'id' => 'PROJECTS_TABS',
-			'name' => 'PROJECTS_TABS'));
+		$this->root = $this->newElement('div', array('class' => 'PROJECTS_TABS'));
+		$this->dom->appendChild($this->root);
 
 		$this->list = $this->newElement('ul');
 		$this->root->appendChild($this->list);
@@ -140,7 +139,7 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 	public function addDependence($dependence, $automatic) {
 		$li = $this->newElement('li');
 		$this->list->appendChild($li);
-		$span = $this->newElement('span', array('use' => $dep, 'class' => 'dependency'));
+		$span = $this->newElement('span', array('use' => $dependence, 'class' => 'dependency'));
 		$li->appendChild($span);
 		$use = $this->loadElement(html_wikilink($dependence));
 		$span->appendChild($use);
@@ -148,7 +147,7 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 			$li->appendChild($this->newText('(automatic)'));
 		else if ($this->editable) {
 			$li->appendChild($this->newText('('));
-			$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
+			$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dependence, 'href' => ''), 'remove');
 			$li->appendChild($input);
 			$li->appendChild($this->newText(')'));
 		}
@@ -183,4 +182,14 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 			$controls->appendChild($this->loadElement(cancel_button()));
 		}
 	}	
+}
+
+class Projects_RecipeTab extends Projects_XHTMLTab {
+ 	public function __construct($parent, $file, $read_only) {
+		parent::__construct($parent, 'Recipe');
+    	$editor = Projects_editor::editor($file->id(), $file->code(), $file->highlight());
+    	$editor->read_only = $read_only;
+    	$content = $editor->xhtml('recipe', 'savecontent');
+    	$this->root->appendChild($this->loadElement($content));
+	}
 }

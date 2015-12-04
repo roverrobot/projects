@@ -47,11 +47,10 @@ class Render_Manage_File extends Doku_Action_Renderer {
         echo '<ul>' . DOKU_LF;
         echo '<li>' . create_button($ID, 'generated') . '</li>' . DOKU_LF;
         foreach ($generated as $id => $file) {
-            $info = '';
             $make = remake_button($id);
-            echo '<li>' . html_wikilink($id) . $info . ': ' .
-                download_button($file) . ', ' .
-                delete_button($file) . ', ' . $make .
+            echo '<li>' . html_wikilink($id) . ': ' .
+                download_button($id) . ', ' .
+                delete_button($id) . ', ' . $make .
                 '</li>' . DOKU_LF;
         }
         echo '</ul>' . DOKU_LF;

@@ -18,10 +18,9 @@ class syntax_plugin_projects_source extends syntax_projectfile
     }
 
     protected function createTabs() {
-        global $REV;
         parent::createTabs();
     	$editor = Projects_editor::editor($this->file->id(), $this->file->code(), $this->file->highlight());
-    	$editor->read_only = $REV || (auth_quickaclcheck($this->file->id()) < AUTH_EDIT);
+    	$editor->read_only = $this->read_only();
     	$content = $editor->xhtml('content', 'savecontent');
         $summary = $this->tabs->tab('Summary');
         $summary->setContent($content);

@@ -30,7 +30,7 @@ class Action_UpdateDependency extends Action_ResolveConflict {
         $from = $entertag['pos'];
         $to = $from + $entertag['length'];
         list($pre,$enter,$suf) = rawWikiSlices("$from-$to", $ID);
-        $enter .= '</source-file>';
+        $enter .= '</' . $this->file->type() . '-file>';
         $dom = DOMDocument::loadXML($enter);
         if ($dom === FALSE) return FALSE;
         $dom->documentElement->setAttribute('use', $use);

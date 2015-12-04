@@ -28,7 +28,7 @@ function loadEditor(files)
 }
 
 jQuery(function() {
-    jQuery( "#PROJECTS_TABS" ).tabs();
+    jQuery( ".PROJECTS_TABS" ).tabs();
 
 	var editors = [];
 	jQuery("textarea[editor]").each (function() {

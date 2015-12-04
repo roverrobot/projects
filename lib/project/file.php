@@ -89,18 +89,11 @@ abstract class Projects_file
 		return $default;
 	}
 
-	protected static function getArrayFromMeta($meta, $key, $default = array(), $sep = FALSE) {
+	protected static function getArrayFromMeta($meta, $key, $default = array()) {
 		if (isset($meta[$key])) {
 			$a = $meta[$key];
 			if (is_array($a)) return $a;
-			if (is_string($a) && $sep) {
-				$a = explode($sep, $a);
-				$deps = array();
-				foreach ($a as $dep) $deps[$dep] = FALSE;
-			}
 		}
-		if (!is_array($default))
-			$default = array();
 		return $default;
 	}
 
@@ -112,7 +105,18 @@ abstract class Projects_file
 	}
 
 	public static function getDependencyFromMeta($meta, $key) {
-		$dependency = self::getArrayFromMeta($meta, $key, array(), ';');
+		$dependency = self::getArrayFromMeta($meta, $key, FALSE);
+		if (!$dependency) {
+			$a = $meta[$key];
+			if (is_string($a)) {
+				$a = explode(';', $a);
+				$dependency = array();
+				foreach ($a as $dep) {
+					$dep = trim($dep);
+					if ($dep) $dependency[$dep] = FALSE;
+				}
+			}
+		}
 		ksort($dependency);
 		return $dependency;
 	}
@@ -231,6 +235,36 @@ class Projects_file_source extends Projects_file
 
 	public function content() {
 		return $this->code;
+	}
+}
+
+class Projects_file_generated extends Projects_file
+{
+	public function __construct($id, $meta) {
+		parent::__construct($id, $meta);
+	}
+
+	public function type() { return "generated"; }
+
+	public function update() {
+		// save to file
+		if (file_exists($this->file_path)) $this->rm();	
+	}
+
+	protected function dependency_changed($old) {
+		$deps = array();
+		foreach ($this->dependency as $dep => $auto)
+			if (!$auto) $deps[] = $dep;
+		$old_deps = array();
+		foreach ($old->dependency as $dep => $auto)
+			if (!$auto) $old_deps[] = $dep;
+		return $deps != $old_deps;
+	}
+
+	public function content() {
+		if (file_exists($this->file_path))
+			return file_get_contents($this->file_path);
+		return '';
 	}
 }
 

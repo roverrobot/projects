@@ -178,7 +178,12 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         $this->createTabs();
         $renderer->doc .= $this->tabs->xhtml();
     }
-    
+
+    protected function read_only() {
+        global $ID;
+        global $REV;
+        return $REV || (auth_quickaclcheck($ID) < AUTH_EDIT);
+    }
 }
 
 #check whether PROJECTS_ROOT exists
