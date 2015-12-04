@@ -11,11 +11,17 @@ class syntax_plugin_projects_source extends syntax_projectfile
 {
     protected function type() { return 'source'; }
 
-    protected function xhtml_code($highlight, $code) {
-    	global $ID;
+    protected function analyze() {
+        $deps = Projects_Analyzer::auto_dependency($this->file);
+        foreach ($deps as $dep)
+            $this->file->set_dependence($dep, TRUE);
+    }
+
+    protected function createTabs() {
         global $REV;
-    	$editor = Projects_editor::editor($ID, $code, $highlight);
-    	$editor->read_only = $REV || (auth_quickaclcheck($ID) < AUTH_EDIT);
+        parent::createTabs();
+    	$editor = Projects_editor::editor($this->file->id(), $this->file->code(), $this->file->highlight());
+    	$editor->read_only = $REV || (auth_quickaclcheck($this->file->id()) < AUTH_EDIT);
     	$content = $editor->xhtml('content', 'savecontent');
         $summary = $this->tabs->tab('Summary');
         $summary->setContent($content);

@@ -80,15 +80,7 @@ class Projects_XHTMLTab {
 
 class Projects_SummaryTab extends Projects_XHTMLTab {
 	protected $actions = NULL;
-	protected $info = NULL;
 	protected $content = NULL;
-
-	public function setUpdate($date) {
-        $format = 'D M d, Y \a\t g:i:s a';
-        if (date_default_timezone_get() == 'UTC') $format .= ' e';
-        $updated = date($format, $date);
-		$this->info->appendChild($this->newElement('span', array(), $updated));
-	}
 
 	public function newAction($action) {
 		if ($this->actions->firstChild != NULL)
@@ -101,7 +93,7 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
 		$this->content->appendChild($this->loadElement($content));
 	}
 
-	public function __construct($parent, $attr) {
+	public function __construct($parent, $file) {
 		global $ID;
 		global $REV;
 
@@ -109,11 +101,21 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
 		$list = $this->newElement('ul');
 		$this->root->appendChild($list);
 
-		$this->info = $this->newElement('li', array());
-		$text =  ': ' . $attr['type'] . ' last updated on ';
-		$this->info->appendChild($this->loadElement(html_wikilink($ID)));
-		$this->info->appendChild($this->newElement('span', array(), $text));
-		$list->appendChild($this->info);
+		$info = $this->newElement('li');
+		$text =  ': ' . $file->type() . ' file';
+		$info->appendChild($this->loadElement(html_wikilink($ID)));
+		$info->appendChild($this->newElement('span', array(), $text));
+		$list->appendChild($info);
+
+        $format = 'D M d, Y \a\t g:i:s a';
+        if (date_default_timezone_get() == 'UTC') $format .= ' e';
+        $date = ($REV) ? $REV : $file->modified_date();
+        if (!$date) {
+        	global $INFO;
+        	$date = $INFO['meta']['projectfile']['modified'];
+        }
+        $updated = $this->newElement('li', array(), 'modified on: ' . date($format, $date));
+		$list->appendChild($updated);
 
 		$actions = $this->newElement('li', array(), "Actions: ");
 		$list->appendChild($actions);
@@ -131,20 +133,37 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
 }
 
 class Projects_DependencyTab extends Projects_XHTMLTab {
-	public function __construct($parent, $attr) {
-		global $ID;
+	protected $list = NULL;
+	protected $panels = NULL;
+	protected $editable = FALSE;
+
+	public function addDependence($dependence, $automatic) {
+		$li = $this->newElement('li');
+		$this->list->appendChild($li);
+		$span = $this->newElement('span', array('use' => $dep, 'class' => 'dependency'));
+		$li->appendChild($span);
+		$use = $this->loadElement(html_wikilink($dependence));
+		$span->appendChild($use);
+		if ($automatic)
+			$li->appendChild($this->newText('(automatic)'));
+		else if ($this->editable) {
+			$li->appendChild($this->newText('('));
+			$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
+			$li->appendChild($input);
+			$li->appendChild($this->newText(')'));
+		}
+	}
+
+	public function __construct($parent, $deps) {
 		global $REV;
-
 		parent::__construct($parent, 'Dependency');
-		$list = $this->newElement('ul', array('class' => 'dependency_list'));
-		$this->root->appendChild($list);
+		$this->list = $this->newElement('ul', array('class' => 'dependency_list'));
+		$this->root->appendChild($this->list);
 
-		$file = Projects_file::file($ID);
-		$deps = $file->dependency();
-		$edit = (!$REV && auth_quickaclcheck($ID) >= AUTH_EDIT);
-		if ($edit) {
+		$this->editable = (!$REV && auth_quickaclcheck($ID) >= AUTH_EDIT);
+		if ($this->editable) {
 			$li = $this->newElement('li');
-			$list->appendChild($li);
+			$this->list->appendChild($li);
 			$span = $this->newElement('span', array('class' => 'dependency'));
 			$li->appendChild($span);
 			$input = $this->newElement('input', array('id' => 'new_dependency_name'));
@@ -152,29 +171,16 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 			$input = $this->newElement('a', array('id' => 'add_dependency', 'href' => '', 'class' => 'action'), 'add');
 			$li->appendChild($input);
 		}
-		foreach ($deps as $dep => $auto) {
-			$li = $this->newElement('li');
-			$list->appendChild($li);
-			$span = $this->newElement('span', array('use' => $dep, 'class' => 'dependency'));
-			$li->appendChild($span);
-			$use = $this->loadElement(html_wikilink($dep));
-			$span->appendChild($use);
-			if ($auto)
-				$li->appendChild($this->newText('(automatic)'));
-			else {
-				$li->appendChild($this->newText('('));
-				$input = $this->newElement('a', array('class' => 'remove_dependency action', 'use'=>$dep, 'href' => ''), 'remove');
-				$li->appendChild($input);
-				$li->appendChild($this->newText(')'));
-			}
+		foreach ($deps as $dep => $auto) $this->addDependence($dep, $auto);
+		if ($this->editable) {
+			$controls = $this->newElement('div', array('id' => 'dependency_update_controls'));
+			$this->root->appendChild($controls);
+			$form = new Doku_Form(array('id' => 'dependency_update_form'));
+	        $form->addHidden('new', '');
+	        $form->addHidden('old', '');
+	        $form->addElement(form_makeButton('submit', 'update_dependency', 'update', array('id' => 'update_dependency')));
+			$controls->appendChild($this->loadElement($form->getForm()));
+			$controls->appendChild($this->loadElement(cancel_button()));
 		}
-		$controls = $this->newElement('div', array('id' => 'dependency_update_controls'));
-		$this->root->appendChild($controls);
-		$form = new Doku_Form(array('id' => 'dependency_update_form'));
-        $form->addHidden('new', '');
-        $form->addHidden('old', '');
-        $form->addElement(form_makeButton('submit', 'update_dependency', 'update', array('id' => 'update_dependency')));
-		$controls->appendChild($this->loadElement($form->getForm()));
-		$controls->appendChild($this->loadElement(cancel_button()));
 	}	
 }

@@ -122,9 +122,6 @@ abstract class Projects_file
 			$v = $meta[$key];
 			if (is_numeric($v)) return $v;
 		}
-		if ($default === FALSE) {
-			$default = time();
-		}
 		return $default;
 	}
 
@@ -150,8 +147,8 @@ abstract class Projects_file
 		$this->dependency = self::getDependencyFromMeta($meta, 'use');
 	}
 
-	public function set_exit_pos($pos) {
-		$this->exit_pos = $pos;
+	public function set_dependence($dependence, $automatic) {
+		$this->dependency[$dependence] = $automatic;
 	}
 
 	abstract public function type();
@@ -160,24 +157,21 @@ abstract class Projects_file
 
 	public function modified_date() { return $this->modified_date; }
 
-	protected function check_dependency($old) {
-		return $this->dependency == $old->dependency();
+	protected function dependency_changed($old) {
+		return $this->dependency != $old->dependency();
 	}
 
 	public function update_from($old) {
-		// auto dependency
-		$deps = Projects_Analyzer::auto_dependency($this);
-		foreach ($deps as $dep)
-			$this->dependency[$dep] = TRUE;
 		if ($old) {
 			$update = ($this->type() != $old->type());
 			$update |= ($this->code != $old->code());
-			$update |= $this->check_dependency($old);
+			$update |= $this->dependency_changed($old);
 			if (!$update) {
 				$this->modified_date = $old->modified_date();
 				return;
 			}
 		}
+		$this->modified_date = time();
 		// if the dir does not exist, create
 		$dir = dirname($this->file_path);
 		if (!file_exists($dir)) mkdir($dir, 0700, TRUE); 
@@ -198,6 +192,7 @@ abstract class Projects_file
 	}
 
 	public function id() { return $this->id; }
+	public function highlight() { return $this->highlight; }
 	public function mimetype() { return $this->mimetype; }
 	public function file_extension() { return $this->file_extension; }
 	public function code() { return $this->code; }
@@ -240,3 +235,4 @@ class Projects_file_source extends Projects_file
 }
 
 Projects_file::register_file_type("source", Projects_file_source);
+Projects_file::register_file_type("generated", Projects_file_generated);
