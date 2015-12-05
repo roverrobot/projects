@@ -22,12 +22,10 @@ class Action_Create extends Doku_Action {
         switch ($type) {
             case 'generated':
                 $TEXT = '<generated-file>' . DOKU_LF . 
-                    '<recipe>' . DOKU_LF . '</recipe>' . DOKU_LF .
                     '</generated-file>';
                 break;
             case 'source':
                 $TEXT = '<source-file>' . DOKU_LF .
-                    '<content>' . DOKU_LF . '</content>' . DOKU_LF .
                     '</source-file>';
                 break;
             case 'project':

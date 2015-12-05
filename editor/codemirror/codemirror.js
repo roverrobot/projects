@@ -9,7 +9,7 @@ require.config({
 }); 
 
 require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
-	jQuery("textarea[editor=codemirror]").each( function() {
+	jQuery(".PROJECTS_EDITOR_CODEMIRROR").each( function() {
 		var text = jQuery(this);
 		var mode = text.attr("mode");
 		if (!mode) {
@@ -17,9 +17,10 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
 			var dots = id.split(".");
 			var ext = dots[dots.length-1];
             var meta = CodeMirror.findModeByExtension(ext);
-            mode = meta.mode;
+            if (meta) mode = meta.mode;
 		}
-		var module = "codemirror/mode/".concat(mode).concat("/").concat(mode);
+		var module = "";
+        if (mode) module = "codemirror/mode/".concat(mode).concat("/").concat(mode);
         require([module], function() {
             editor = CodeMirror.fromTextArea(text[0], {
             	lineNumbers: true,
@@ -29,14 +30,15 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             editor.toggleReadOnly = function() {
                 editor.setOption("readOnly", !editor.getOption("readOnly"));
             }
+            editor.document = function() {
+                return editor.getValue();
+            }
             editor.isDirty = function() {
                 return !editor.isClean();
             }
-            if (!document.hasOwnProperty("editors")) {
+            if (!document.hasOwnProperty("editors"))
             	document.editors = {};
-                document.editors[text.attr("name")] = editor;
-            }
-            else document.editors[text.attr("name")] = editor;
+            document.editors[text.attr("id")] = editor;
         });
 	});
 });

@@ -7,22 +7,24 @@
 
 require_once DOKU_PLUGIN . 'syntax.php';
 require_once dirname(__FILE__) . '/../../lib/project/file.php';
-require_once dirname(__FILE__) . '/../../lib/syntax/xhtml.php';
+require_once dirname(__FILE__) . '/../../lib/syntax/xhtmltab.php';
 
 abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
 {
     abstract protected function type();
 
-    protected $project_file = NULL;
+    protected $tabs = array();
+    protected $file = NULL;
+    protected $data = array();
 
     protected function tag() { return $this->type() . '-file'; } 
  
-    function getType() { 
-        return 'container';
+    function getPType() { 
+        return 'normal';
     }
         
-    function getPType() { 
-        return 'stack';
+    function getType() { 
+        return 'disabled';
     }
         
     function getSort() { 
@@ -33,20 +35,25 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         return 'plugin_projects_' . $this->type();
     }
 
+    protected function enterTag() {
+        return '<' . $this->tag() . '\b.*?>';
+    }
+    
+    protected function exitTag() {
+        return '</' . $this->tag() . '>';
+    }
+    
     function connectTo($mode) {
-        $enter_tag = '<' . $this->tag() . '\b.*?>';
-        $exit_tag = '</' . $this->tag() . '>';
-        $this->Lexer->addEntryPattern($enter_tag . '(?=.*' . $exit_tag . ')'
+        $this->Lexer->addEntryPattern($this->enterTag() . '(?=.*' . $this->exitTag() . ')'
             , $mode, $this->mode()); 
     }
 
     function postConnect() {
-        $exit_tag = '</' . $this->tag() . '>';
-        $this->Lexer->addExitPattern($exit_tag, $this->mode()); 
+        $this->Lexer->addExitPattern($this->exitTag(), $this->mode()); 
     }
 
     private function parse($tag) {
-        $xml = DOMDocument::loadXML($tag . '</' . $this->tag() . '>');
+        $xml = DOMDocument::loadXML($tag . $this->exitTag());
         if ($xml == false) return NULL;
         $attributes = array();
         foreach ($xml->firstChild->attributes as $attribute)
@@ -66,129 +73,117 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         if ($PROJECTS_FILE_OCCURRENCE == $ID)
             return array('command' => 'text', 'text' => $match, 'pos' => $pos);
 
+        $tag = array('pos' => $pos, 'length' => strlen($match));
         switch ($state) {
             case DOKU_LEXER_ENTER:
                 $attr = $this->parse($match);
                 $attr['type'] = $this->type();
                 $attr['pos'] = $pos;
+                $attr['length'] = $length;
                 return array(
                     'command' => 'enter',
-                    'attributes' => $attr);
+                    'attributes' => $attr,
+                    'tag' => $tag);
             case DOKU_LEXER_EXIT:
                 $PROJECTS_FILE_OCCURRENCE = $ID;
-                return array('command' => 'exit', 'pos' => $pos);
+                return array('command' => 'exit', 'tag' => $tag);
             case DOKU_LEXER_UNMATCHED:
-                return array('command' => 'text', 'text' => $match, 'pos' => $pos);
+                if ($match[0] == "\r") {
+                    $match = substr($match, 1);
+                    $pos++;
+                }
+                if ($match[0] == "\n") {
+                    $match = substr($match, 1);
+                    $pos++;
+                }
+                if (substr($match, -1) == "\n")
+                    $match = substr($match, 0, strlen($match)-1);
+                if (substr($match, -1) == "\r")
+                    $match = substr($match, 0, strlen($match)-1);
+
+                return array(
+                    'command' => 'code',
+                    'code' => $match,
+                    'pos' => $tag);
         }
         return false;
     }
  
+    abstract protected function analyze();
     /**
      * Create output
      */
     function render($mode, &$renderer, $data) {
         if (!$data) return;
+
+        switch ($data['command']) {
+            case 'enter':
+                if (!$this->file) {
+                    $this->data = $data['attributes'];
+                    $this->data['entertag'] = $data['tag'];
+                }
+                return;
+
+            case 'code':
+                if (!$this->file) {
+                    $this->data['code'] = $data['code'];
+                    $this->data['codepos'] = $data['pos'];
+                }
+                return;
+
+            case 'exit':
+                if ($this->file) break;
+                global $ID;
+                $this->data['exittag'] = $data['tag'];
+                $this->file = Projects_file::file($ID, $this->data);
+                // auto dependency
+                $this->analyze();
+        }
+
         switch ($mode) {
             case 'metadata' :
-                $this->render_meta($renderer, $data);
+                $this->render_meta($renderer);
                 break;
             case 'xhtml' :
-                $this->render_xhtml($renderer, $data);
+                $this->render_xhtml($renderer);
                 break;
         }
     }
 
-    protected function render_meta(&$renderer, $data) {
+    protected function render_meta(&$renderer) {
+        // check if the project path exists
+        $ns = getNS($this->file->id());
+        $path = Projects_file::projects_file_path($ns, false);
+        if (!file_exists($path)) mkdir($path, 0700, true);
+
+        global $OLD_PROJECTS_FILE;
+        $this->file->update_from($OLD_PROJECTS_FILE);
+        $OLD_PROJECTS_FILE = $this->file;
+
+        $renderer->meta['projectfile'] = $this->file->meta();
+    }
+
+    protected function createTabs() {
+        global $REV;
+        $date = ($REV) ? $REV : $this->file->modified_date();
+        $this->tabs = new Projects_XHTMLTabs();
+        $summary = new Projects_SummaryTab($this->tabs, $this->file);
+        $this->tabs->newTab($summary);
+        $deps = $this->file->dependency();
+        $dependency = new Projects_DependencyTab($this->tabs, $deps);
+        $this->tabs->newTab($dependency);
+    }
+
+    protected function render_xhtml(&$renderer) {
+        $this->createTabs();
+        $renderer->doc .= $this->tabs->xhtml();
+    }
+
+    protected function read_only() {
         global $ID;
-        switch ($data['command']) {
-            case 'enter':
-                $renderer->persistent['projectfile'] = $data['attributes'];
-                break;
-
-            case 'exit':
-                $this->project_file = Projects_file::file($ID, $renderer->persistent['projectfile']);
-                // check if the project path exists
-                $ns = getNS($ID);
-                $path = Projects_file::projects_file_path($ns, false);
-                if (!file_exists($path)) mkdir($path, 0700, true);
-                $this->project_file->set_exit_pos($data['pos']);
-
-                if (isset($renderer->meta['projectfile']))
-                    $old = $renderer->meta['projectfile'];
-                else $old = array();
-                if ($this->project_file->is_modified($old))
-                    $this->project_file->modify();
-
-                $renderer->persistent['projectfile'] = $this->project_file->meta();
-                $renderer->meta['projectfile'] = $renderer->persistent['projectfile'];
-
-                break;
-        }
+        global $REV;
+        return $REV || (auth_quickaclcheck($ID) < AUTH_EDIT);
     }
-
-    protected function actions($file) {
-        global $ID;
-        return array(
-            'download' => download_button($ID),
-            'delete' => delete_button($ID),
-            'manage files' => manage_files_button($ID));
-    }
-
-    abstract  protected function xhtml_content($file);
-
-    protected function xhtml_tabs($file) {
-        global $ID;
-        $format = 'D M d, Y \a\t g:i:s a';
-        if (date_default_timezone_get() == 'UTC') $format .= ' e';
-        $updated = date($format, $file->modified_date());
-        $type = $file->type();
-
-        $actions = $this->actions($file);
-        $xhtml_actions = '<li>Actions: ' . implode(', ', $actions) . '</li>'.DOKU_LF;
-
-        return array(
-            'Summary' => '<ul>' . DOKU_LF .
-                "<li>" . html_wikilink($ID) . 
-                ": $type file, last updated on $updated</li>" . DOKU_LF .
-                $xhtml_actions .
-                '</ul>' . DOKU_LF . $this->xhtml_content($file));
-    }
-
-    protected function render_xhtml(&$renderer, $data) {
-        switch ($data['command']) {
-            case 'enter':
-                global $ID;
-                global $INFO;
-                if ($this->project_file == NULL) {
-                    $meta = $INFO['meta']['projectfile'];
-                    $this->project_file = Projects_file::file($ID, $meta);
-                }
-
-                $tabs = $this->xhtml_tabs($this->project_file);
-                $ul = '<ul>';
-                $panels = '';
-                $i = 0;
-                foreach ($tabs as $title => $tab) {
-                    $ul .= '<li><a href="#projects_file_tabs_' . $i . '">' .
-                        $title . '</a></li>' . DOKU_LF;
-                    $panels .= '<div id="projects_file_tabs_' . $i . '">' . DOKU_LF .
-                        $tab . '</div>' . DOKU_LF;
-                    $i++;
-                }
-                $ul .= '</ul>' . DOKU_LF;
-                $renderer->doc .= '<div id="projects_file_tabs">' .
-                    $ul . $panels . '</div>' . DOKU_LF; 
-
-                break;
-            case 'exit':
-                $renderer->doc .= '</dl>';
-                break;
-            case 'text':
-                $renderer->doc .= htmlspecialchars($data['text']);
-                break;
-        }
-    }
-    
 }
 
 #check whether PROJECTS_ROOT exists
