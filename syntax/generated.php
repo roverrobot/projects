@@ -12,19 +12,16 @@ class syntax_plugin_projects_generated extends syntax_projectfile
 {
     protected function type() { return 'generated'; }
 
-    protected function analyze() {
-    }
-
     protected function content() {
         $content = Projects_formatter::xhtml($this->file);
         return $content;
     }
 
-    protected function createTabs() {
-        parent::createTabs();
+    protected function createTabs($file) {
+        parent::createTabs($file);
         $summary = $this->tabs->tab('Summary');
         $summary->setContent($this->content());
-        $recipe = new Projects_RecipeTab($this->tabs, $this->file, $this->read_only());
+        $recipe = new Projects_RecipeTab($this->tabs, $file, $this->read_only());
         $this->tabs->newTab($recipe);
     }
 

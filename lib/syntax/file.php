@@ -14,7 +14,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
     abstract protected function type();
 
     protected $tabs = array();
-    protected $file = NULL;
     protected $data = array();
 
     protected function tag() { return $this->type() . '-file'; } 
@@ -109,7 +108,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         return false;
     }
  
-    abstract protected function analyze();
     /**
      * Create output
      */
@@ -118,64 +116,62 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
 
         switch ($data['command']) {
             case 'enter':
-                if (!$this->file) {
-                    $this->data = $data['attributes'];
-                    $this->data['entertag'] = $data['tag'];
-                }
+                $renderer->meta['projectfile'] = $data['attributes'];
+                $renderer->meta['projectfile']['entertag'] = $data['tag'];
                 return;
 
             case 'code':
-                if (!$this->file) {
-                    $this->data['code'] = $data['code'];
-                    $this->data['codepos'] = $data['pos'];
-                }
+                $renderer->meta['projectfile']['code'] = $data['code'];
+                $renderer->meta['projectfile']['codepos'] = $data['pos'];
                 return;
 
             case 'exit':
-                if ($this->file) break;
                 global $ID;
-                $this->data['exittag'] = $data['tag'];
-                $this->file = Projects_file::file($ID, $this->data);
+                $renderer->meta['projectfile']['exittag'] = $data['tag'];
+                $file = Projects_file::file($ID, $renderer->meta['projectfile']);
                 // auto dependency
-                $this->analyze();
+                $file->analyze();
         }
 
         switch ($mode) {
             case 'metadata' :
-                $this->render_meta($renderer);
+                $this->render_meta($renderer, $file);
                 break;
             case 'xhtml' :
-                $this->render_xhtml($renderer);
+                $this->render_xhtml($renderer, $file);
                 break;
         }
     }
 
-    protected function render_meta(&$renderer) {
+    protected function render_meta(&$renderer, $file) {
         // check if the project path exists
-        $ns = getNS($this->file->id());
+        global $ID;
+        $ns = getNS($ID);
         $path = Projects_file::projects_file_path($ns, false);
         if (!file_exists($path)) mkdir($path, 0700, true);
 
-        global $OLD_PROJECTS_FILE;
-        $this->file->update_from($OLD_PROJECTS_FILE);
-        $OLD_PROJECTS_FILE = $this->file;
+        $old = Projects_file::file($ID);
+        $file->update_from($old);
 
-        $renderer->meta['projectfile'] = $this->file->meta();
+        unset($renderer->meta['projectfile']);
+        global $PROJECT_FILES;
+        if (!isset($PROJECT_FILES)) $PROJECT_FILES = array($ID=>$file);
+        else $PROJECT_FILES[$ID] = $file;
     }
 
-    protected function createTabs() {
+    protected function createTabs($file) {
         global $REV;
-        $date = ($REV) ? $REV : $this->file->modified_date();
+        $date = ($REV) ? $REV : $file->modified_date();
         $this->tabs = new Projects_XHTMLTabs();
-        $summary = new Projects_SummaryTab($this->tabs, $this->file);
+        $summary = new Projects_SummaryTab($this->tabs, $file);
         $this->tabs->newTab($summary);
-        $deps = $this->file->dependency();
+        $deps = $file->dependency();
         $dependency = new Projects_DependencyTab($this->tabs, $deps);
         $this->tabs->newTab($dependency);
     }
 
-    protected function render_xhtml(&$renderer) {
-        $this->createTabs();
+    protected function render_xhtml(&$renderer, $file) {
+        $this->createTabs($file);
         $renderer->doc .= $this->tabs->xhtml();
     }
 

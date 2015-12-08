@@ -21,6 +21,7 @@ abstract class Projects_file
 	protected $file_path = '';
 	protected $code = '';
 	protected $dependency = array();
+	protected $modified = FALSE;
 
 	public static function register_file_type($type, $class) {
 		self::$types[$type] = $class;
@@ -33,20 +34,20 @@ abstract class Projects_file
 	}
 
 	public static function file($id, $meta=NULL) {
-		if ($meta == NULL) {
-			global $ID;
-			if ($ID == $id) {
-				global $INFO;
-				if (isset($INFO['meta']['projectfile']))
-					$meta = $INFO['meta']['projectfile'];
-				else return NULL;
-			} else $meta = p_get_metadata($id, 'projectfile', FALSE);
-		}
+		if ($meta == NULL)
+			$meta = unserialize(io_readFile(metaFN($id, '.projects'), FALSE));
 		if (!is_array($meta)) return NULL;
 		if (!isset($meta['type'])) return NULL;
 		$type = $meta['type'];
 		if (!isset(self::$types[$type])) return NULL;
 		return new self::$types[$type]($id, $meta);
+	}
+
+	public static function remove($id) {
+		$file = self::file($id);
+		if ($file) $file->rm();
+		$meta = metaFN($id, '.projects');
+		if (file_exists($meta)) unlink($meta);
 	}
 
 	public static function project_files($ns) {
@@ -152,10 +153,6 @@ abstract class Projects_file
 		$this->dependency = self::getDependencyFromMeta($meta, 'use');
 	}
 
-	public function set_dependence($dependence, $automatic) {
-		$this->dependency[$dependence] = $automatic;
-	}
-
 	abstract public function type();
 	abstract protected function update();
 	abstract public function content();
@@ -176,10 +173,12 @@ abstract class Projects_file
 				return;
 			}
 		}
+		$this->modified = TRUE;
 		$this->modified_date = time();
 		// if the dir does not exist, create
 		$dir = dirname($this->file_path);
 		if (!file_exists($dir)) mkdir($dir, 0700, TRUE); 
+		$this->save();
 		$this->update();
 	}
 
@@ -233,6 +232,16 @@ abstract class Projects_file
 		// make this file
 		return $date;
 	}
+
+	public function save() {
+		if ($this->modified) {
+			$meta = metaFN($this->id, '.projects');
+			io_saveFile($meta, serialize($this->meta()));
+			$this->modified = FALSE;
+		}
+	}
+
+	abstract public function analyze();
 }
 
 class Projects_file_source extends Projects_file
@@ -258,6 +267,13 @@ class Projects_file_source extends Projects_file
 	public function content() {
 		return $this->code;
 	}
+
+    public function analyze() {
+        $deps = Projects_Analyzer::auto_dependency($this);
+        foreach ($deps as $dep)
+			$this->dependency[$dep] = TRUE;
+    }
+
 }
 
 class Projects_file_generated extends Projects_file
@@ -338,6 +354,10 @@ class Projects_file_generated extends Projects_file
 		}
 		return $result;
     }
+
+    public function analyze() {
+    }
+
 }
 
 Projects_file::register_file_type("source", Projects_file_source);

@@ -11,15 +11,9 @@ class syntax_plugin_projects_source extends syntax_projectfile
 {
     protected function type() { return 'source'; }
 
-    protected function analyze() {
-        $deps = Projects_Analyzer::auto_dependency($this->file);
-        foreach ($deps as $dep)
-            $this->file->set_dependence($dep, TRUE);
-    }
-
-    protected function createTabs() {
-        parent::createTabs();
-    	$editor = Projects_editor::editor($this->file->id(), $this->file->code(), $this->file->highlight());
+    protected function createTabs($file) {
+        parent::createTabs($file);
+    	$editor = Projects_editor::editor($file->id(), $file->code(), $file->highlight());
     	$editor->read_only = $this->read_only();
     	$content = $editor->xhtml('content', 'savecontent');
         $summary = $this->tabs->tab('Summary');

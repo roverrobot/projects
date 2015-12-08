@@ -6,6 +6,7 @@
  */
  
 require_once DOKU_PLUGIN.'action.php';
+require_once dirname(__FILE__) . '/../lib/project/file.php';
 
 class action_plugin_projects_page extends DokuWiki_Action_Plugin { 
     /**
@@ -33,11 +34,6 @@ class action_plugin_projects_page extends DokuWiki_Action_Plugin {
 		if ($namespace)
 		    $id = $namespace . ':' . $name;
 		else $id = $name;
-        $meta = p_read_metadata($id, TRUE);
-        if (!isset($meta['current']['projectfile'])) return;
-        $file = Projects_file::file($id, $meta['current']['projectfile']);
-        if ($file) $file->rm();
-        unset($meta['current']['projectfile']);
-        p_save_metadata($id, $meta);
+        Projects_file::remove($id);
 	}	
 }
