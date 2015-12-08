@@ -3,6 +3,7 @@
 define(PROJECTS_ROOT, DOKU_INC . '/data/projects/');
 
 require_once dirname(__FILE__) . '/../analyzer.php';
+require_once dirname(__FILE__) . '/../maker.php';
 
 abstract class Projects_file 
 {
@@ -211,6 +212,27 @@ abstract class Projects_file
 		$media = mediaFN($this->id);
 		if (file_exists($media)) unlink($media);
 	}
+
+	public function make($history) {
+		// make dependency
+		if (in_array($this->id, $history)) {
+			$loop = 'dependency loop:';
+			foreach($history as $dep) $loop . ' ' . html_wikilink($dep);
+			return array($this->id => $loop);
+		}
+		$date = $this->modified_date;
+		foreach ($this->dependency as $dep => $auto) {
+			$file = self::file($dep);
+			$result = $file->make();
+			if (is_array($result)) {
+				$result[] = array($this->id => 'failed to make the dependence ' . html_wikilink($dep));
+				return $result;
+			}
+			if ($result > $date) $date = $result;
+		}
+		// make this file
+		return $date;
+	}
 }
 
 class Projects_file_source extends Projects_file
@@ -240,8 +262,18 @@ class Projects_file_source extends Projects_file
 
 class Projects_file_generated extends Projects_file
 {
+	protected $maker = '';
+	protected $making = FALSE;
+	protected $errors = array();
+
 	public function __construct($id, $meta) {
 		parent::__construct($id, $meta);
+		if (isset($meta['making']))
+			$this->making = $meta['making'];
+		if (isset($meta['maker']))
+			$this->maker = $meta['maker'];
+		if (isset($meta['errors']))
+			$this->errors = $meta['errors'];
 	}
 
 	public function type() { return "generated"; }
@@ -270,6 +302,42 @@ class Projects_file_generated extends Projects_file
 			return file_get_contents($this->file_path);
 		return '';
 	}
+
+	protected function add_error($id, $error) {
+		if (!isset($this->errors[$id]))
+			$this->errors[$id] = array($error);
+		else $this->errors[$id][] = array($error);
+	}
+
+	public function rm() {
+		parent::rm();
+        $log = $this->file_path . '.make.log';
+        if (file_exists($log)) unlink($log);
+	}
+
+	public function make() {
+		$result = parent::make();
+		if (is_array($result)) return $result;
+		if ($result > $this->modified_date) return $result;
+
+		$this->rm();
+		$this->error = array();
+		$this->making = TRUE;
+		if (!$this->maker) {
+			$makers = Projects_Maker::maker($this);
+			$maker = ($makers) ? $makers.front() : NULL;
+			if ($maker) $this->maker = $maker->name();
+		} else $maker = Projects_Maker::maker($this->maker);
+		if (!$maker) {
+			$this->add_error($this->id, 'no available maker');
+			return $this->errors;
+		}
+		if (!$maker->make($this)) {
+			$this->add_error($this->id, 'make failed');
+			return $this->errors;
+		}
+		return $result;
+    }
 }
 
 Projects_file::register_file_type("source", Projects_file_source);
