@@ -160,8 +160,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
     }
 
     protected function createTabs($file) {
-        global $REV;
-        $date = ($REV) ? $REV : $file->modified_date();
         $this->tabs = new Projects_XHTMLTabs();
         $summary = new Projects_SummaryTab($this->tabs, $file);
         $this->tabs->newTab($summary);

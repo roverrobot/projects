@@ -110,8 +110,8 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
         if (date_default_timezone_get() == 'UTC') $format .= ' e';
         $date = ($REV) ? $REV : $file->modified_date();
         if (!$date) {
-        	global $INFO;
-        	$date = $INFO['meta']['projectfile']['modified'];
+        	$meta = Projects_file::file($file->id());
+        	$date = $meta->modified_date();
         }
         $updated = $this->newElement('li', array(), 'modified on: ' . date($format, $date));
 		$list->appendChild($updated);
