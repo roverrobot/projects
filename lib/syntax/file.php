@@ -77,8 +77,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
             case DOKU_LEXER_ENTER:
                 $attr = $this->parse($match);
                 $attr['type'] = $this->type();
-                $attr['pos'] = $pos;
-                $attr['length'] = $length;
                 return array(
                     'command' => 'enter',
                     'attributes' => $attr,
@@ -160,6 +158,8 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
     }
 
     protected function createTabs($file) {
+        global $REV;
+        $date = ($REV) ? $REV : $file->modified_date();
         $this->tabs = new Projects_XHTMLTabs();
         $summary = new Projects_SummaryTab($this->tabs, $file);
         $this->tabs->newTab($summary);
