@@ -111,7 +111,7 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
         $date = ($REV) ? $REV : $file->modified_date();
         if (!$date) {
         	$meta = Projects_file::file($file->id());
-        	$date = $meta->modified_date();
+        	$date = ($meta)? $meta->modified_date() : time();
         }
         $updated = $this->newElement('li', array(), 'modified on: ' . date($format, $date));
 		$list->appendChild($updated);
