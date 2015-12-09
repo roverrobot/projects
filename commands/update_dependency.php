@@ -10,7 +10,7 @@ class Action_UpdateDependency extends Action_ResolveConflict {
         if (!$this->file) return array();
         $deps = $this->file->dependency();
         $now = array();
-        foreach ($deps as $dep => $auto)
+        if ($deps) foreach ($deps as $dep => $auto)
             if (!$auto) $now[] = $dep;
         return $now;
     }
