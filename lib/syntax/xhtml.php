@@ -41,12 +41,13 @@ function delete_button($id) {
         'This file can be recovered from old revisions in the future.'."'".')');
 }
 
-function remake_button($id) {
-    return xhtml_action($id, 'make', 'remake', array('id' => $id));
+function make_button($id, $remake=FALSE) {
+    $title = ($remake) ? 'remake' : 'make';
+    return xhtml_action($id, 'make', $title, array('id' => $id, 'remake' => $remake));
 }
 
 function kill_button($id) {
-    return xhtml_action('cancel', 'kill', 'cancel', array('id' => $id));
+    return xhtml_action('cancel', 'kill', 'cancel generation', array('id' => $id));
 }
 
 function create_button($id, $type) {
