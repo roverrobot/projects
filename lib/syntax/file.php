@@ -126,9 +126,6 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
             case 'exit':
                 global $ID;
                 $renderer->meta['projectfile']['exittag'] = $data['tag'];
-                $file = Projects_file::file($ID, $renderer->meta['projectfile']);
-                // auto dependency
-                $file->analyze();
         }
 
         switch ($mode) {
@@ -136,6 +133,8 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 $this->render_meta($renderer, $file);
                 break;
             case 'xhtml' :
+                $file = Projects_file::file($ID);
+                if ($file->status() != PROJECTS_MADE) $renderer->info['cache'] = FALSE;
                 $this->render_xhtml($renderer, $file);
                 break;
         }
@@ -148,6 +147,9 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
         $path = Projects_file::projects_file_path($ns, false);
         if (!file_exists($path)) mkdir($path, 0700, true);
 
+        $file = Projects_file::file($ID, $renderer->meta['projectfile']);
+        // auto dependency
+        $file->analyze();
         $old = Projects_file::file($ID);
         $file->update_from($old);
 

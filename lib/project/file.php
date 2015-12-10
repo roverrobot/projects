@@ -5,6 +5,36 @@ define(PROJECTS_ROOT, DOKU_INC . '/data/projects/');
 require_once dirname(__FILE__) . '/../analyzer.php';
 require_once dirname(__FILE__) . '/../maker.php';
 
+define(PROJECTS_MADE, 0);
+define(PROJECTS_MODIFIED, 1);
+
+class Projects_make_progress {
+	private $made = array();
+	private $making = '';
+	private $queue = array();
+	private $pid = 0;
+	private $started = 0;
+
+	public function made() { return $this->made; }
+	public function making() { return $this->making; }
+	public function queue() { return $this->queue; }
+	public function pid() { return $this->pid; }
+	public function started() { return $this->started; }
+
+	public function __construct($file) {
+		$this->pid = getmypid();
+		$this->queue = array_keys($file->dependency());
+		$this->queue[] = $file->id();
+		$this->started = time();
+	}
+
+	public function progress() {
+		if ($this->making) $this->made[] = $this->making;
+		$this->making = array_shift($this->queue);
+		return $this->making;
+	}
+}
+
 abstract class Projects_file 
 {
 	private static $types = array();
@@ -22,6 +52,7 @@ abstract class Projects_file
 	protected $code = '';
 	protected $dependency = array();
 	protected $modified = FALSE;
+	protected $status = PROJECTS_MADE;
 
 	public static function register_file_type($type, $class) {
 		self::$types[$type] = $class;
@@ -151,10 +182,11 @@ abstract class Projects_file
 		$this->code = self::getStringFromMeta($meta, 'code');
 		$this->modified_date = self::getDateFromMeta($meta, 'modified');
 		$this->dependency = self::getDependencyFromMeta($meta, 'use');
+		if (isset($meta['status']))
+			$this->status = $meta['status'];
 	}
 
 	abstract public function type();
-	abstract protected function update();
 	abstract public function content();
 
 	public function modified_date() { return $this->modified_date; }
@@ -163,23 +195,36 @@ abstract class Projects_file
 		return $this->dependency != $old->dependency();
 	}
 
-	public function update_from($old) {
+	protected function is_modified($old) {
+		if (!$old) return TRUE;
+		$modified = ($this->type() != $old->type());
+		$modified = $modified || ($this->code != $old->code());
+		$modified = $modified || $this->dependency_changed($old);
+		return $modified;
+	}
+
+	protected function copy_from($old) {
 		if ($old) {
-			$update = ($this->type() != $old->type());
-			$update |= ($this->code != $old->code());
-			$update |= $this->dependency_changed($old);
-			if (!$update) {
-				$this->modified_date = $old->modified_date();
-				return;
-			}
+			$this->modified_date = $old->modified_date();
+			$this->status = $old->status();
 		}
-		$this->modified = TRUE;
+	}
+
+	public function update_from($old) {
+		$this->modified = $this->is_modified($old);
+		if (!$this->modified) {
+			$this->copy_from($old);
+			return;
+		}
+		$this->update();
+	}
+
+	protected function update() {
 		$this->modified_date = time();
 		// if the dir does not exist, create
 		$dir = dirname($this->file_path);
 		if (!file_exists($dir)) mkdir($dir, 0700, TRUE); 
-		$this->save();
-		$this->update();
+		$this->save();		
 	}
 
 	public function meta() {
@@ -192,6 +237,7 @@ abstract class Projects_file
 		$meta['modified'] = $this->modified_date;
 		$meta['code'] = $this->code;
 		$meta['use'] = $this->dependency;
+		$meta['status'] = $this->status;
 		return $meta;
 	}
 
@@ -205,6 +251,46 @@ abstract class Projects_file
 	public function exittag() { return $this->exittag; }
 	public function dependency() { return $this->dependency; }
 	public function file_path() { return $this->file_path; }
+	public function status() { return $this->status; }
+
+	public function is_making() {
+		return is_a($this->status, 'Projects_make_progress');
+	}
+
+	public function killed() {
+		if (!$this->is_making()) return;
+		$making = $this->status()->making();
+		$this->add_error('file generation canceled');
+		$this->modified = TRUE;
+		$this->save();
+		$file = self::file($making);
+		$file->killed();
+	}
+
+	protected function wait() {
+		$file = NULL;
+		while (TRUE) {
+			$file = self::file($this->id);
+			if (!$file) {
+				$this->add_error('Wiki page deleted?');
+				return $this->status;
+			} 
+			if (!$file->is_making())
+				break;
+			sleep(1);
+		}
+		if ($file->status != PROJECTS_MADE) return $file->status;
+		return $file->modified_date();
+	}
+
+	protected function add_error($error) {
+		if (!is_array($this->status))
+			$this->status = array($this->id => array($error));
+		else if (!isset($this->status[$this->id]))
+			$this->status[$this->id] = array($error);
+		else $this->status[$this->id][] = $error;
+	}
+
 	public function rm() {
 		if (file_exists($this->file_path))
 			unlink($this->file_path);
@@ -212,23 +298,38 @@ abstract class Projects_file
 		if (file_exists($media)) unlink($media);
 	}
 
-	public function make($history) {
+	public function make($history, $force) {
+		// if it is currently being made, wait until it is done
+		if ($this->is_making())
+			return $this->wait();
 		// make dependency
 		if (in_array($this->id, $history)) {
-			$loop = 'dependency loop:';
+			$loop = 'dependency loop:' . html_wikilink($this->id);
 			foreach($history as $dep) $loop . ' ' . html_wikilink($dep);
-			return array($this->id => $loop);
+			$this->add_error($loop);
+			return $this->status;
 		}
 		$date = $this->modified_date;
+		if ($this->status == PROJECTS_MODIFIED || $force)
+			$this->modified = TRUE;
+		$this->status = new Projects_make_progress($this);
+		$history[] = $this->id;
 		foreach ($this->dependency as $dep => $auto) {
+			$this->status->progress();
 			$file = self::file($dep);
-			$result = $file->make();
+			if (!$file) {
+				$this->add_error('do not know how to make the dependence ' . html_wikilink($dep));
+				return $this->status;
+			}
+			$result = $file->make($history, FALSE);
 			if (is_array($result)) {
-				$result[] = array($this->id => 'failed to make the dependence ' . html_wikilink($dep));
-				return $result;
+				$this->status = $result;
+				$this->add_error('failed to generate ' . html_wikilink($dep));
+				return $this->status;
 			}
 			if ($result > $date) $date = $result;
 		}
+		$this->status->progress();
 		// make this file
 		return $date;
 	}
@@ -253,6 +354,7 @@ class Projects_file_source extends Projects_file
 	public function type() { return "source"; }
 
 	public function update() {
+		parent::update();
 		// save to file
 		if (file_exists($this->file_path)) {
 			$content = file_get_contents($this->file_path);
@@ -274,29 +376,57 @@ class Projects_file_source extends Projects_file
 			$this->dependency[$dep] = TRUE;
     }
 
+	public function make($history, $force) {
+		$result = parent::make($history, $force);
+		if (is_a($this->status, 'Projects_make_progress'))
+			$this->status = PROJECTS_MADE;
+		if (is_array($result)) {
+			$this->status = $result;
+			$this->modified = TRUE;
+			$this->save();
+			return $result;
+		}
+		if ($result < $this->modified_date) return $this->modified_date;
+		return $result;
+	}
 }
 
 class Projects_file_generated extends Projects_file
 {
 	protected $maker = '';
-	protected $making = FALSE;
-	protected $errors = array();
+
+	public function maker() { return $this->maker; }
 
 	public function __construct($id, $meta) {
 		parent::__construct($id, $meta);
-		if (isset($meta['making']))
-			$this->making = $meta['making'];
 		if (isset($meta['maker']))
 			$this->maker = $meta['maker'];
-		if (isset($meta['errors']))
-			$this->errors = $meta['errors'];
+	}
+
+	protected function is_modified($old) {
+		if (parent::is_modified($old)) return TRUE;
+		return (!$old || $this->maker != $old->maker());
+	}
+
+	protected function copy_from($old) {
+		parent::copy_from($old);
+		if ($old) $this->maker = $old->maker();
+	}
+
+	public function meta() {
+		$meta = parent::meta();
+		if ($this->maker)
+			$meta['maker'] = $this->maker;
+		return $meta;
 	}
 
 	public function type() { return "generated"; }
 
 	public function update() {
+		$this->status = PROJECTS_MODIFIED;
+		parent::update();
 		// save to file
-		if (file_exists($this->file_path)) $this->rm();	
+		if (file_exists($this->file_path)) $this->rm();
 	}
 
 	protected function dependency_changed($old) {
@@ -319,10 +449,10 @@ class Projects_file_generated extends Projects_file
 		return '';
 	}
 
-	protected function add_error($id, $error) {
-		if (!isset($this->errors[$id]))
-			$this->errors[$id] = array($error);
-		else $this->errors[$id][] = array($error);
+	public function log() {
+        $log = $this->file_path . '.make.log';
+        if (file_exists($log)) return file_get_contents($log);
+        return '';
 	}
 
 	public function rm() {
@@ -331,31 +461,46 @@ class Projects_file_generated extends Projects_file
         if (file_exists($log)) unlink($log);
 	}
 
-	public function make() {
-		$result = parent::make();
-		if (is_array($result)) return $result;
-		if ($result > $this->modified_date) return $result;
+	public function make($history, $force) {
+		// make the dependencies
+		if (is_array($this->status)) $force = TRUE;
+		$result = parent::make($history, $force);
+		if (is_array($result)) {
+			$this->status = $result;
+			$this->modified = TRUE;
+			$this->save();
+			return $result;
+		}
 
+		// now the status has to be PROJECTS_MODIFIED, i.e., it needs to be made.
+		if (!$this->modified) return $this->modified_date;
 		$this->rm();
-		$this->error = array();
-		$this->making = TRUE;
-		if (!$this->maker) {
-			$makers = Projects_Maker::maker($this);
-			$maker = ($makers) ? $makers.front() : NULL;
-			if ($maker) $this->maker = $maker->name();
-		} else $maker = Projects_Maker::maker($this->maker);
-		if (!$maker) {
-			$this->add_error($this->id, 'no available maker');
-			return $this->errors;
+		$this->save();
+		if ($this->maker)
+			$maker = Projects_Maker::maker($this->maker);
+		else $maker = NULL;
+		if (!$maker)
+			$this->add_error('no available maker');
+		else if (!$maker->make($this))
+			$this->add_error('make failed');
+		else {
+			$this->modified_date = time();
+			$this->status = PROJECTS_MADE;
+			// analyze the content for autodependency
+	        $deps = Projects_Analyzer::auto_dependency($this);
+	        foreach ($deps as $dep)
+				$this->dependency[$dep] = TRUE;
 		}
-		if (!$maker->make($this)) {
-			$this->add_error($this->id, 'make failed');
-			return $this->errors;
-		}
-		return $result;
+		$this->modified = TRUE;
+		$this->save();
+		return $this->modified_date;
     }
 
     public function analyze() {
+		if (!$this->maker) {
+			$makers = Projects_Maker::maker($this);
+			$this->maker = ($makers) ? $makers.front() : '';
+		}
     }
 
 }
