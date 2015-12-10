@@ -47,7 +47,7 @@ class Render_Manage_File extends Doku_Action_Renderer {
         echo '<ul>' . DOKU_LF;
         echo '<li>' . create_button($ID, 'generated') . '</li>' . DOKU_LF;
         foreach ($generated as $id => $file) {
-            $make = remake_button($id);
+            $make = make_button($id, $file->status() == PROJECTS_MADE);
             echo '<li>' . html_wikilink($id) . ': ' .
                 download_button($id) . ', ' .
                 delete_button($id) . ', ' . $make .
