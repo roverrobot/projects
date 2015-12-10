@@ -113,7 +113,7 @@ jQuery(function() {
 	jQuery("#add_dependency").click(function () { add_dependency(deps_update); return false; });
 	jQuery(".remove_dependency").click(function() {
 		enable_dependency_update(deps_update);
-		remove_dependency(jQuery(this));
+		jQuery(this).parent().remove();; 
 		return false;
 	});
 });
@@ -149,23 +149,12 @@ function add_dependency(deps_update) {
 			if (dup) return;
 			if (!added) list.last().parent().after(code);
 		}
-		jQuery("#remove_dependency").click(function () {
-			remove_dependency(jQuery(this)); 
+		jQuery(".remove_dependency").click(function () {
+			enable_dependency_update(deps_update);
+			jQuery(this).parent().remove();; 
 			return false;
 		});
 	}
-}
-
-function remove_dependency(button){
-	var use = button.attr('use');
-	if (use) {
-		var match = "span[use=".concat(use).concat("]");
-		jQuery(match).parent().remove();
-	}
-	jQuery("#remove_dependency").click(function () {
-		remove_dependency(jQuery(this)); 
-		return false;
-	});
 }
 
 function editorSubmit(form) {
