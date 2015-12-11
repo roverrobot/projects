@@ -6,14 +6,7 @@ class Action_Make extends Doku_Action {
     protected static $PHP = '';
 
     public static function findPHP() {
-       $paths = explode(PATH_SEPARATOR, getenv('PATH'));
-       $exe = (isset($_SERVER["WINDIR"])) ? 'php.exe' : 'php';
-
-       foreach ($paths as $path) {
-            self::$PHP = $path . DIRECTORY_SEPARATOR . $exe;
-            if (file_exists(self::$PHP) && is_file(self::$PHP))
-               return;
-        }
+        self::$PHP = find_executable('php');
     }
 
     public function action() { return "make"; }

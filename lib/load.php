@@ -35,3 +35,15 @@ function load_dir($dir, $name=false) {
     // load scripts in subdirs recursively
     foreach ($subdirs as $subdir) load_dir($subdir, $action);
 }
+
+function find_executable($name) {
+    $paths = explode(PATH_SEPARATOR, getenv('PATH'));
+    $exe = (isset($_SERVER["WINDIR"])) ? $name . '.exe' : $name;
+
+    foreach ($paths as $path) {
+        $file = $path . DIRECTORY_SEPARATOR . $exe;
+        if (file_exists($file) && is_file($file))
+            return $file;
+    }
+    return FALSE;
+}
