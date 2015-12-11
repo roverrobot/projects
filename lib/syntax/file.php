@@ -134,7 +134,7 @@ abstract class syntax_projectfile extends DokuWiki_Syntax_Plugin
                 break;
             case 'xhtml' :
                 $file = Projects_file::file($ID);
-                if ($file->status() != PROJECTS_MADE) $renderer->info['cache'] = FALSE;
+                $renderer->info['cache'] = FALSE;
                 $this->render_xhtml($renderer, $file);
                 break;
         }
