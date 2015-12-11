@@ -24,4 +24,5 @@ $group = (!isset($opts['group'])) ? '' : $opts['group'];
 $group = explode(':', $group);
 if (auth_aclcheck($id, $user, $group) < DOKU_EDIT) exit();
 $file = Projects_file::file($id);
+if ($file->is_making()) return;
 $file->make(array(), $remake);
