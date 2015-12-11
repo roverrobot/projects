@@ -21,7 +21,7 @@ class Action_SaveContent extends Action_ResolveConflict {
         $from = $pos['pos'];
         $to = $from + $pos['length'];
         list($pre,$code,$suf) = rawWikiSlices("$from-$to", $ID);
-        return $pre . DOKU_LF . $content . DOKU_LF . $suf;
+        return $pre . $content . $suf;
     }
 }
 
