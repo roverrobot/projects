@@ -31,15 +31,17 @@ abstract class Projects_Maker {
             return self::$_handlers[$request];
         }
         $handlers = array();
-        foreach (self::$_handlers as $handler)
-            if ($handler->can_handle($file))
-                array_push($handlers, $handler);
+        if (is_a($request, 'Projects_file')) {
+            foreach (self::$_handlers as $handler)
+                if ($handler->can_handle($request))
+                    array_push($handlers, $handler);
+        }
         return $handlers;
     }
 
 
     abstract public function name();
-    abstract public function can_handle($id, $meta);
+    abstract public function can_handle($file);
     abstract public function make($file);
 }
 
