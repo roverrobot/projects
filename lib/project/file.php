@@ -14,14 +14,16 @@ class Projects_make_progress {
 	private $queue = array();
 	private $pid = 0;
 	private $started = 0;
+	private $history = array();
 
 	public function made() { return $this->made; }
 	public function making() { return $this->making; }
 	public function queue() { return $this->queue; }
 	public function pid() { return $this->pid; }
 	public function started() { return $this->started; }
+	public function history() { return $this->history; }
 
-	public function __construct($file) {
+	public function __construct($file, $history) {
 		$this->pid = getmypid();
 		$this->queue = array_keys($file->dependency());
 		$this->queue[] = $file->id();
@@ -260,9 +262,15 @@ abstract class Projects_file
 	public function killed() {
 		if (!$this->is_making()) return;
 		$making = $this->status()->making();
+		$history = $this->status()->history();
 		$this->add_error('file generation canceled');
 		$this->modified = TRUE;
 		$this->save();
+		foreach ($history as $hist) {
+			$file = self::file($hist);
+			if ($file->is_making() && $file->status()->pid() == $this->pid())
+				$file->killed();
+		}
 		$file = self::file($making);
 		$file->killed();
 	}
@@ -312,7 +320,7 @@ abstract class Projects_file
 		$date = $this->modified_date;
 		if ($this->status == PROJECTS_MODIFIED || $force)
 			$this->modified = TRUE;
-		$this->status = new Projects_make_progress($this);
+		$this->status = new Projects_make_progress($this, $history);
 		$history[] = $this->id;
 		foreach ($this->dependency as $dep => $auto) {
 			$this->status->progress();
