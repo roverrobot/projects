@@ -243,6 +243,15 @@ abstract class Action_ResolveConflict_Renderer extends Doku_Action_Renderer {
         $right->appendChild($code);
     }
 
+    protected function copy($text) {
+        if (!$text) return;
+        $div = $this->doc->createElement('div');
+        $div->setAttribute('class', 'diffcopy');
+        $code = $this->pre($text, 1);
+        $div->appendChild($code);
+        $this->root->appendChild($div);
+    }
+
     public function xhtml() {
         global $MERGED_DIFF;
         $this->doc = new DOMDocument;
@@ -256,15 +265,12 @@ abstract class Action_ResolveConflict_Renderer extends Doku_Action_Renderer {
                 continue;
             }
             if ($text) {
-                $div = $this->doc->createElement('div');
-                $div->setAttribute('class', 'diffcopy');
-                $code = $this->pre($text, 1);
-                $div->appendChild($code);
-                $this->root->appendChild($div);
+                $this->copy($text);
                 $text = '';
             }
             $this->diffOpOutput($op, $i++);
         }
+        if ($text) $this->copy($text);
         echo $this->doc->saveXML($this->root);
         $form = new Doku_Form(array('id'=>'diff_form'));
         $form->addHidden($this->new_input_name(), '');
