@@ -15,8 +15,10 @@ class Action_Make extends Doku_Action {
         else $id = $ID;
 
         $file = Projects_file::file($id);
-        system('kill ' . $this->status->pid());
-        $file->killed();
+        if ($file->is_making()) {
+            system('kill ' . $file->status()->pid());
+            $file->killed();
+        }
         return "show";
     }
 }
