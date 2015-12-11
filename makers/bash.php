@@ -27,7 +27,7 @@ class Projects_Maker_Bash extends Projects_Maker
         $descs = array(
             array('pipe', 'r'),
             array('file', $log, 'w'),
-            array('file', $log, 'w'));
+            array('file', $log, 'a'));
         $proc = proc_open($command, $descs, $pipes, dirname($log));
         fwrite($pipes[0], $code);
         $return = proc_close($proc);
