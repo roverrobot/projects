@@ -51,21 +51,21 @@ class Projects_XHTMLTabs {
 class Projects_XHTMLTab {
 	private $name = '';
 	private $parent = NULL;
-	protected $root = NULL;
+	public $root = NULL;
 
 	public function root() { return $this->root; }
 	public function name() { return $this->name; }
 	public function id() { return 'PROJECTS_TAB_' . $this->name; }
 
 	public function importNode($node) { return $this->parent->importNode($node); }
-	protected function newElement($name, $attributes=array(), $value = NULL) {
+	public function newElement($name, $attributes=array(), $value = NULL) {
 		return $this->parent->newElement($name, $attributes, $value);
 	}
 	protected function newText($text) {
 		return $this->parent->newText($text);
 	}
 
-	protected function loadElement($text) {
+	public function loadElement($text) {
 		$dom = DOMDocument::loadXML($text);
 		return $this->importNode($dom->documentElement);
 	}
@@ -187,7 +187,7 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 class Projects_RecipeTab extends Projects_XHTMLTab {
  	public function __construct($parent, $file, $read_only) {
 		parent::__construct($parent, 'Recipe');
-    	$editor = Projects_editor::editor($file->id(), $file->code(), $file->highlight());
+    	$editor = Projects_editor::editor('', $file->code(), $file->highlight());
     	$editor->read_only = $read_only;
     	$maker = $this->newElement('div', array(), 'Maker: ');
     	$this->root->appendChild($maker);
@@ -214,6 +214,18 @@ class Projects_RecipeTab extends Projects_XHTMLTab {
 	    	}
     	} else $maker->appendChild($this->newText('Maker: ' . $file->maker()));
     	$content = $editor->xhtml('recipe', 'savecontent');
-    	$this->root->appendChild($this->loadElement($content));
+    	$this->root->appendChild($this->loadElement("<div>$content</div>"));
 	}
+}
+
+class Projects_LogTab extends Projects_XHTMLTab {
+ 	public function __construct($parent, $file) {
+		parent::__construct($parent, 'Log');
+		$log = $file->log();
+		if (!$log) return;
+    	$editor = Projects_editor::editor($file->log_file(), $file->log(), '');
+    	$editor->read_only = TRUE;
+    	$content = $editor->xhtml('log', 'show');
+    	$this->root->appendChild($this->loadElement($content));
+    }
 }

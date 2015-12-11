@@ -389,6 +389,7 @@ class Projects_file_source extends Projects_file
 		if ($result < $this->modified_date) return $this->modified_date;
 		return $result;
 	}
+
 }
 
 class Projects_file_generated extends Projects_file
@@ -503,8 +504,11 @@ class Projects_file_generated extends Projects_file
     public function analyze() {
 		if (!$this->maker) {
 			$makers = Projects_Maker::maker($this);
-			$this->maker = ($makers) ? $makers[0]->name() : '';
-		}
+			if ($makers) {
+				$maker = $makers[0];
+				$this->maker = $maker->name();
+			} else $this->maker = '';
+		} else $maker = Projects_Maker::maker($this->maker);
     }
 
 }

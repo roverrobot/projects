@@ -65,6 +65,8 @@ class syntax_plugin_projects_generated extends syntax_projectfile
         $summary->setContent($this->content($file));
         $recipe = new Projects_RecipeTab($this->tabs, $file, $this->read_only());
         $this->tabs->newTab($recipe);
+        $log = new Projects_LogTab($this->tabs, $file);
+        $this->tabs->newTab($log);
     }
 
 }
