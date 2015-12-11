@@ -22,7 +22,7 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
 		var module = "";
         if (mode) module = "codemirror/mode/".concat(mode).concat("/").concat(mode);
         require([module], function() {
-            editor = CodeMirror.fromTextArea(text[0], {
+            var editor = CodeMirror.fromTextArea(text[0], {
             	lineNumbers: true,
                 readOnly: true,
                 mode: mode
@@ -36,8 +36,6 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             editor.isDirty = function() {
                 return !editor.isClean();
             }
-            if (!document.hasOwnProperty("editors"))
-            	document.editors = {};
             document.editors[text.attr("id")] = editor;
         });
 	});

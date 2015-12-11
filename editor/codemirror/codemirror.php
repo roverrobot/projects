@@ -24,13 +24,13 @@ class Projects_editor_CodeMirror extends Projects_editor {
             require=\"$paths\" 
             editor=\"codemirror\" 
             mode=\"$highlight\">" . 
-            htmlspecialchars($this->code) . DOKU_LF . 
+            htmlspecialchars($this->code) . 
             '</textarea>' . DOKU_LF;
         $controls = '<div>';
         if (auth_quickaclcheck($ID) >= AUTH_EDIT && !$this->read_only) {
             $controls .= '<div>';
-            $form = new Doku_Form(array('id' => 'editor_submit_form', 'editor' => $editor_id));
-            $form->addElement(form_makeButton('submit', $do, 'edit', array('id' => 'editor_submit_button')));
+            $form = new Doku_Form(array('class' => 'editor_submit_form', 'editor' => $editor_id));
+            $form->addElement(form_makeButton('submit', $do, 'edit', array('class' => 'editor_submit_button')));
             $controls .= $form->getForm() . cancel_button() . '</div>';
         }
         return $controls . $content . '</div>';

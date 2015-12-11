@@ -28,20 +28,28 @@ function loadEditor(files)
 }
 
 jQuery(function() {
-    jQuery( ".PROJECTS_TABS" ).tabs();
-
-	var editors = [];
+    jQuery( ".PROJECTS_TABS" ).tabs({
+        activate: function(event, ui) {
+        	var editors = Object.keys(document.editors);
+        	for (var i = 0; i < editors.length; i++)
+        		document.editors[editors[i]].refresh();
+        }
+    });
+	var editors = {};
 	jQuery("textarea[editor]").each (function() {
 		var editor = jQuery(this).attr("editor");
-		if (editor && !inArray(editor, editors)) {
-			var files = jQuery(this).attr("require");
-			loadEditor(files);
-		}
+		var files = jQuery(this).attr("require");
+		editors[editor] = files;
 	});
-	jQuery("#editor_submit_form").each(function() {
+	var editor_names = Object.keys(editors);
+    document.editors = {};
+	for (var i = 0; i < editor_names.length; i++) 
+		loadEditor(editors[editor_names[i]]);
+
+	jQuery(".editor_submit_form").each(function() {
 		var form = jQuery(this);
 		form.submit(function() { return editorSubmit(form); });
-		form.parent().children("#action_cancel").hide();
+		form.parent().children(".action_cancel").hide();
 	});
 	jQuery("input[name^=diffaccept_").change(function() {
 		var val = jQuery(this).val();
@@ -166,11 +174,11 @@ function add_dependency(deps_update) {
 
 function editorSubmit(form) {
 	var id = form.attr("editor");
-	button = form.children().children("#editor_submit_button");
+	var button = form.children().children(".editor_submit_button");
 	if (button.length == 0) return false;
-	submit = button.html() == "save";
+	var submit = button.html() == "save";
 	if (submit) button.html('edit'); else button.html('save');
-	var cancel = form.parent().children("#action_cancel");
+	var cancel = form.parent().children(".action_cancel");
 	if (submit) cancel.hide(); else cancel.show();
 	var editor = document.editors[id];
 	var text = editor.document();
