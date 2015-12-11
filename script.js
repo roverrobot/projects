@@ -116,6 +116,13 @@ jQuery(function() {
 		jQuery(this).parent().remove();; 
 		return false;
 	});
+	jQuery("#maker_controls").each(function() {
+		var controls = jQuery(this);
+		controls.hide();
+		controls.parent().children("#PROJECTS_maker").change(function() {
+			controls.show();
+		});
+	});
 });
 
 function add_dependency(deps_update) {

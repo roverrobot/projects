@@ -16,8 +16,8 @@ class Projects_XHTMLTabs {
 
 	public function newElement($name, $attributes=array(), $value = NULL) {
 		$e = $this->dom->createElement($name, $value);
-		foreach ($attributes as $attr => $value)
-			$e->setAttribute($attr, $value);
+		foreach ($attributes as $attr => $v)
+			$e->setAttribute($attr, $v);
 		return $e;
 	}
 
@@ -189,6 +189,30 @@ class Projects_RecipeTab extends Projects_XHTMLTab {
 		parent::__construct($parent, 'Recipe');
     	$editor = Projects_editor::editor($file->id(), $file->code(), $file->highlight());
     	$editor->read_only = $read_only;
+    	$maker = $this->newElement('div', array(), 'Maker: ');
+    	$this->root->appendChild($maker);
+    	if (auth_quickaclcheck($file->id()) >= DOKU_EDIT) {
+    		$makers = Projects_maker::maker($file);
+    		if (count($makers) > 1) {
+	    		$select = $this->newElement('select', array('id' => 'PROJECTS_maker', 'name' => 'maker'));
+	    		$maker->appendChild($select);
+	    		foreach ($makers as $m) {
+	    			$prop = array('value' => $m->name());
+	    			if ($m->name() == $file->maker()) $prop['selected'] = 1;
+	    			$opt = $this->newElement('option', $prop, $m->name());
+	    			$select->appendChild($opt);
+	    		}
+	    		$controls = $this->newElement('span', array('id' => 'maker_controls', 'maker' => $file->maker()));
+	    		$maker->appendChild($controls);
+				$form = new Doku_Form(array('id' => 'maker_select_form'));
+	        	$form->addElement(form_makeButton('submit', 'set_maker', 'update', array('id' => 'set_maker')));
+				$controls->appendChild($this->loadElement($form->getForm()));
+				$controls->appendChild($this->loadElement(cancel_button()));
+	    	} else {
+	    		$m = ($makers) ? $makers[0]->name() : 'none';
+	    		$maker->appendChild($this->newText($m));
+	    	}
+    	} else $maker->appendChild($this->newText('Maker: ' . $file->maker()));
     	$content = $editor->xhtml('recipe', 'savecontent');
     	$this->root->appendChild($this->loadElement($content));
 	}

@@ -449,8 +449,12 @@ class Projects_file_generated extends Projects_file
 		return '';
 	}
 
+	public function log_file() {
+        return $this->file_path . '.make.log';
+    }
+
 	public function log() {
-        $log = $this->file_path . '.make.log';
+        $log = $this->log_file();
         if (file_exists($log)) return file_get_contents($log);
         return '';
 	}
@@ -499,7 +503,7 @@ class Projects_file_generated extends Projects_file
     public function analyze() {
 		if (!$this->maker) {
 			$makers = Projects_Maker::maker($this);
-			$this->maker = ($makers) ? $makers.front() : '';
+			$this->maker = ($makers) ? $makers[0]->name() : '';
 		}
     }
 
