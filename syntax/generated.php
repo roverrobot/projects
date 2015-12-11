@@ -23,26 +23,24 @@ class syntax_plugin_projects_generated extends syntax_projectfile
     }
  
     private static function format_time($time) {
-        $sec = self::part($time, 60, 'second');
-        $min = self::part($time, 60, 'minute');
-        $hour = self::part($time, 24, 'hour');
-        $day = self::part($time, 7, 'day');
-        $week = self::part($time, $time+1, 'week');
+        $sec = self::part($time, 60, ' second');
+        $min = self::part($time, 60, ' minute');
+        $hour = self::part($time, 24, ' hour');
+        $day = self::part($time, 7, ' day');
+        $week = self::part($time, $time+1, ' week');
         return "$week $day $hour $min $sec";
     }
 
     protected function content($file) {
-        if ($file->status() == PROJECTS_MODIFIED)
-            return '<div>The file is not generated yet: ' . make_button($file->id(), FALSE) . '</div>'; 
         if ($file->is_making()) {
             $time = time() - $file->status()->started();
             $content = '<div id="PROJECTS_progress">The file has been generating for ' . self::format_time($time) . 
                 ': ' . kill_button($file->id(), FALSE) . DOKU_LF;
             foreach($file->status()->made() as $made) 
-                $content .= '<div class="PROJECTS_made">' . html_wikilink($made) . '</div>' . DOKU_LF;
-            $content .= '<div class="PROJECTS_making">' . html_wikilink($this->status()->making()) . '</div>' . DOKU_LF;
+                $content .= '<div class="success">' . html_wikilink($made) . '</div>' . DOKU_LF;
+            $content .= '<div class="notify">' . html_wikilink($file->status()->making()) . '</div>' . DOKU_LF;
             foreach($file->status()->queue() as $queue) 
-                $content .= '<div class="PROJECTS_queue">' . html_wikilink($queue) . '</div>' . DOKU_LF;
+                $content .= '<div class="info">' . html_wikilink($queue) . '</div>' . DOKU_LF;
             return $content . '</div>' . DOKU_LF; 
         }
         if (is_array($file->status())) {
@@ -52,6 +50,8 @@ class syntax_plugin_projects_generated extends syntax_projectfile
                     $content .= '<div class="error">' . html_wikilink($id) . ': ' . $error . '</div>' . DOKU_LF;
             return $content .  '</div>' . DOKU_LF;
         }
+        if ($file->status() === PROJECTS_MODIFIED)
+            return '<div>The file is not generated yet: ' . make_button($file->id(), FALSE) . '</div>'; 
         $content = Projects_formatter::xhtml($file);
         return $content;
     }
