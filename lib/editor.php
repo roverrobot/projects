@@ -7,10 +7,24 @@ require_once dirname(__FILE__) . '/load.php';
 abstract class Projects_editor {
 	private static $editors = array();
 	abstract static public function name();
-	abstract public function xhtml($editor_id, $do);
+	abstract protected function editor_xhtml($editor_id, $do);
 
     abstract protected function get_highlight($file, $code);
 
+    public function xhtml($editor_id, $do) {
+        $controls = '<div>';
+        if (!$this->read_only) {
+            $form = new Doku_Form(array('class' => 'editor_edit_form', 'editor' => $editor_id));
+            $form->addElement(form_makeButton('submit', '', 'edit'));
+            $controls .= $form->getForm();
+            $controls .= '<div class="editor_save_controls">';
+            $form = new Doku_Form(array('class' => 'editor_save_form', 'editor' => $editor_id));
+            $form->addElement(form_makeButton('submit', 'savecontent', 'save'));
+            $controls .= $form->getForm() . cancel_button() . '</div>';
+        }
+        return $controls . $this->editor_xhtml($editor_id, $do) . '</div>';
+
+    }
     public $read_only = TRUE;
     protected $code;
     protected $highlight;

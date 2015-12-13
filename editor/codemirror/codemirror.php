@@ -12,27 +12,19 @@ class Projects_editor_CodeMirror extends Projects_editor {
         return '';
     }
 
-	public function xhtml($editor_id, $do) {
+	protected function editor_xhtml($editor_id, $do) {
         $files = array(
             PROJECTS_EDITOR_CODEMIRROR_CSS, 
             PROJECTS_EDITOR_CODEMIRROR_DW_CSS,
             PROJECTS_EDITOR_CODEMIRROR_JS);
         $paths = implode($files, ':');
         $highlight = $this->highlight;
-        $content = "<textarea class=\"PROJECTS_EDITOR_CODEMIRROR\" 
+        return "<textarea class=\"PROJECTS_EDITOR_CODEMIRROR\" 
             id=\"$editor_id\" 
             require=\"$paths\" 
             editor=\"codemirror\" 
             mode=\"$highlight\">" . 
             htmlspecialchars($this->code) . 
-            '</textarea>' . DOKU_LF;
-        $controls = '<div>';
-        if (auth_quickaclcheck($ID) >= AUTH_EDIT && !$this->read_only) {
-            $controls .= '<div>';
-            $form = new Doku_Form(array('class' => 'editor_submit_form', 'editor' => $editor_id));
-            $form->addElement(form_makeButton('submit', $do, 'edit', array('class' => 'editor_submit_button')));
-            $controls .= $form->getForm() . cancel_button() . '</div>';
-        }
-        return $controls . $content . '</div>';
+            '</textarea>';
 	}
 }
