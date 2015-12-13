@@ -26,9 +26,10 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             	lineNumbers: true,
                 readOnly: true,
                 mode: mode
-            }); 
-            editor.toggleReadOnly = function() {
-                editor.setOption("readOnly", !editor.getOption("readOnly"));
+            });
+            editor.editor_id = text.attr("id");
+            editor.setReadOnly = function(readOnly) {
+                editor.setOption("readOnly", readOnly);
             }
             editor.document = function() {
                 return editor.getValue();
@@ -36,7 +37,8 @@ require(["codemirror", "codemirror/mode/meta"], function(CodeMirror) {
             editor.isDirty = function() {
                 return !editor.isClean();
             }
-            document.editors[text.attr("id")] = editor;
+            text.data("editor", editor);
+            jQuery(document).trigger({type: "EditorReady", editor: editor});
         });
 	});
 });

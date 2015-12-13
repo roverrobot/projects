@@ -1,56 +1,109 @@
 /* DOKUWIKI:include_once editor/require.js */
 
-function inArray(value, array)
-{
-	for (v in array)
-		if (array[v] == value) return true;
-	return false;
+function submitForm(data, form) {
+	var text = "";
+	if (data.editing) {
+		text = data.getValue();
+		data.editing = data.oldValue != text;
+	}
+	if (!data.editing) {
+		data.updateDisplay();
+		return false;
+	}
+	var tag = jQuery("<textarea/>").addClass("hidden").attr("name", "new").text(text);
+	form.append(tag);
+	tag = jQuery("<textarea/>").addClass("hidden").attr("name", "old").text(data.oldValue);
+	form.append(tag);
+	return true;
 }
 
-function loadEditor(files)
+function loadFiles(files)
 {
-	var head = document.getElementsByTagName('head')[0];
-	var paths = files.split(":");
-	for (var i in paths) {
-		path = paths[i];
+	for (var i in files) {
+		path = files[i];
 		if (path.substring(path.length-3).toLowerCase()==".js") {
-			var script= document.createElement('script');
-   			script.type= 'text/javascript';
-   			script.src= path;
-   			head.appendChild(script);
+			jQuery.getScript(path);
 		} else if (path.substring(path.length-4).toLowerCase()==".css") {
-			var link= document.createElement('link');
-   			link.rel= 'stylesheet';
-   			link.href= path;
-   			head.appendChild(link);
+			var css = jQuery("<link>");
+			css.attr({rel:  "stylesheet", type: "text/css", href: path});
+   			jQuery("head").append(css);
    		}
 	}
 }
 
+function onlyUnique(value, index, self) { 
+    return value && self.indexOf(value) === index;
+}
+
+// load tabs
 jQuery(function() {
     jQuery( ".PROJECTS_TABS" ).tabs({
         activate: function(event, ui) {
-        	var editors = Object.keys(document.editors);
-        	for (var i = 0; i < editors.length; i++)
-        		document.editors[editors[i]].refresh();
+        	ui.newPanel.find("textarea[editor]").each(function() {
+        		jQuery(this).data("editor").refresh();
+        	});
         }
     });
-	var editors = {};
-	jQuery("textarea[editor]").each (function() {
-		var editor = jQuery(this).attr("editor");
-		var files = jQuery(this).attr("require");
-		editors[editor] = files;
-	});
-	var editor_names = Object.keys(editors);
-    document.editors = {};
-	for (var i = 0; i < editor_names.length; i++) 
-		loadEditor(editors[editor_names[i]]);
+});
 
-	jQuery(".editor_submit_form").each(function() {
-		var form = jQuery(this);
-		form.submit(function() { return editorSubmit(form); });
-		form.parent().children(".action_cancel").hide();
+// load editors
+jQuery(function() {
+	var files = jQuery("textarea[editor]").map(function() {
+		return jQuery(this).attr("require");
+	}).get().join(":").split(":").filter(onlyUnique);
+	loadFiles(files);
+});
+
+// setup editor control logic
+jQuery(function() {
+	jQuery(document).on("EditorReady", function(e) {
+		var edit_form = jQuery(".editor_edit_form");
+		if (edit_form.length == 0) return;
+		if (edit_form.attr("editor") != e.editor.editor_id) return;
+		var save_form = jQuery(".editor_save_form");
+		if (save_form.length == 0) return;
+		if (save_form.attr("editor") != e.editor.editor_id) return;
+		var save_controls = save_form.parent();
+		var data = {
+			editor: e.editor,
+			edit_form: edit_form,
+			save_form: save_form,
+			save_controls: save_controls,
+			oldValue: e.editor.document(),
+			editing: false
+		};
+		data.getValue = function() {
+			return this.editor.document();
+		}
+		data.updateDisplay = function() {
+			if (!this.editing) {
+				this.edit_form.show();
+				this.save_controls.hide();
+				this.editor.setReadOnly(true);
+			} else {
+				this.edit_form.hide();
+				this.save_controls.show();
+				this.editor.setReadOnly(false);
+				this.editor.focus();
+			}
+		}
+		data.updateDisplay();
+		edit_form.submit(data, function(e) {
+			data.editing = true;
+			data.updateDisplay();
+			return false;
+		})
+		save_form.submit(data, function(e) { 
+			return submitForm(e.data, jQuery(this)); 
+		});
 	});
+});
+
+// conflict resolving
+jQuery(function() {
+	var form = jQuery("diff_form");
+	if (form.length == 0) return;
+	// select conflicting branches
 	jQuery("input[name^=diffaccept_").change(function() {
 		var val = jQuery(this).val();
 		var pick = jQuery(this).parent().parent().parent();
@@ -79,6 +132,7 @@ jQuery(function() {
 				break;
 		}
 	});
+	// accept nonconflicting changes
 	jQuery("input[name=diffaccept").change(function() {
 		var val = jQuery(this).attr('checked');
 		var pick = jQuery(this).parent().parent();
@@ -94,128 +148,112 @@ jQuery(function() {
 			closing_code.attr("diffpick", 0);
 		}
 	});
-	jQuery("#diff_form").submit(function(){
+	// submit changes
+	var data = { editing: true }
+	data.codeList = function(list) {
+		return list.map(function() { return jQuery(this).html(); })
+			.get().join("\n");
+	}
+	data.oldValue = data.codeList(jQuery(".diffold, .diffcopy").children("pre"));
+	data.getValue = function() {
+		return this.codeList(jQuery("pre[diffpick=1]"));
+	}
+	data.updateDisplay= function() { data.editing = true; }
+	form.submit(data, function(e) {		
 		if (jQuery('pre[diffpick="-1"]').length > 0) {
 			alert('There are still unresolved conflicts!');
 			return false;
 		}
-		var orig = "";
-		jQuery(".diffold, .diffcopy").each(function() {
-			var code = jQuery(this).children('pre').html();
-			if (code.length > 0) 
-				orig = orig.concat('\n').concat(code);
-		});
-		var old = jQuery(this).children().children('input[name=old]');
-		old.val(orig);
-		var closing = "";
-		jQuery("pre[diffpick=1]").each(function() {
-			var code = jQuery(this).html();
-			if (code.length > 0) 
-				closing = closing.concat('\n').concat(code);
-		});
-		var content = jQuery(this).children().children('input[name=new]');
-		content.val(closing);
-	});
-	var deps_update = jQuery("#dependency_update_controls");
-	deps_update.hide();
-	jQuery("#add_dependency").click(function () { add_dependency(deps_update); return false; });
-	jQuery(".remove_dependency").click(function() {
-		enable_dependency_update(deps_update);
-		jQuery(this).parent().remove();; 
-		return false;
-	});
-	jQuery("#maker_controls").each(function() {
-		var controls = jQuery(this);
-		controls.hide();
-		controls.parent().children("#PROJECTS_maker").change(function() {
-			controls.show();
-		});
+		return submitForm(e.data, jQuery(this));
 	});
 });
 
-function add_dependency(deps_update) {
-	enable_dependency_update(deps_update);
-	var dep = jQuery("#new_dependency_name");
-	var use = dep.val();
-	dep.val('');
-	if (use) {
-		var code = '<li><span class="dependency" use="'.concat(use).concat('">')
-					.concat(use).concat('</span>(<a href="" use="').concat(use)
-					.concat('" class="remove_dependency action">remove</a>)</li>');
-		var list = jQuery("span[use]");
-		if (list.length == 0) {
-			jQuery(".dependency_list").append(code);
-		} else {
-			var added = false;
-			var dup = false;
-			list.each(function() {
-				var id = jQuery(this).attr("use");
-				if (id == use) {
-					dup = true;
-					return false;
-				}
-				if (id && use < id) {
-					var li = jQuery(this).parent();
-					li.before(code);
-					added = true;
-					return false;
-				}
-			});
-			if (dup) return;
-			if (!added) list.last().parent().after(code);
+// dependency handling
+jQuery(function() {
+	jQuery("#dependency_update_controls").each(function() {
+		var control = jQuery(this);
+		var data = {
+			control: control,
+			newUse: jQuery("#new_dependency_name"),
+			editing: false
 		}
-		jQuery(".remove_dependency").click(function () {
-			enable_dependency_update(deps_update);
-			jQuery(this).parent().remove();; 
+		data.getList = function() {
+			return jQuery("span[use]").map(function() { return jQuery(this).attr("use"); })
+				.get().filter(onlyUnique);
+		}
+		data.getValue = function() { return this.getList().join("\n"); }
+		data.oldValue = data.getValue();
+		data.updateDisplay = function() {
+			if (this.editing) 
+				this.control.show();
+			else this.control.hide();
+		}
+		data.updateDisplay();
+		control.children("#dependency_update_form").submit(data, function(e) {
+			submitForm(e.data, jQuery(this));
+		});
+		jQuery("#add_dependency").click(data, function (e) {
+			var use = data.newUse.val();
+			data.newUse.val('');
+			if (use) {
+				e.data.editing = true;
+				e.data.updateDisplay();
+				add_dependency(e.data, use); 
+			}
 			return false;
 		});
-	}
-}
-
-function editorSubmit(form) {
-	var id = form.attr("editor");
-	var button = form.children().children(".editor_submit_button");
-	if (button.length == 0) return false;
-	var submit = button.html() == "save";
-	if (submit) button.html('edit'); else button.html('save');
-	var cancel = form.parent().children(".action_cancel");
-	if (submit) cancel.hide(); else cancel.show();
-	var editor = document.editors[id];
-	var text = editor.document();
-	editor.toggleReadOnly();
-	if (submit) {
-		var tag = jQuery("<textarea/>").addClass("hidden").attr("name", "new").text(text);
-		form.append(tag);
-		submit = editor.isDirty();
-	} else {
-		editor.focus();
-		var old = form.children("textarea[name=old]");
-		if (old.length == 0) {
-			var tag = jQuery("<textarea/>").addClass("hidden").attr("name", "old").text(text);
-			form.append(tag);
-		}
-	}
-	return submit;
-}
-
-function get_dependencies() {
-	var deps = "";
-	jQuery("span[use]").each(function(){
-		var dep = jQuery(this).attr("use");
-		deps = (deps) ? deps.concat("\n").concat(dep) : dep;
+		jQuery(".remove_dependency").click(data, remove_dependency);
 	});
-	return deps;
+});
+
+// maker change handling
+jQuery(function() {
+	var data = {
+		controls: jQuery("#maker_controls"),
+		select: jQuery("#PROJECTS_maker"),
+		editing: false
+	}
+	data.getValue = function() {
+		return this.select.val();
+	}
+	data.oldValue = data.getValue();
+	data.updateDisplay = function() {
+		if (!this.editing)
+			this.controls.hide();
+		else this.controls.show();
+	}
+	data.updateDisplay();
+	data.select.change(data, function(e) {
+		e.data.editing = true; 
+		e.data.updateDisplay();
+	});
+	jQuery("#maker_select_form").submit(data, function(e) {
+		return submitForm(e.data, jQuery(this));
+	});
+});
+
+function remove_dependency(e) {
+	e.data.editing = true;
+	e.data.updateDisplay();
+	jQuery(this).parent().remove();; 
+	return false;
 }
 
-function enable_dependency_update(deps_update) {
-	if (deps_update.is(":visible")) return;
-	deps_update.show();
-	var deps = get_dependencies();
-	var form = deps_update.children("#dependency_update_form");
-	form.children().children("input[name=old]").val(deps);
-	deps_update.submit(function() {
-		var deps = get_dependencies();
-		form.children().children("input[name=new]").val(deps);
-	});
+function add_dependency(data, use) {
+	if (data.getList().indexOf(use) >= 0) return;
+	var li = jQuery("<li>");
+	var span = jQuery("<span>");
+	span.addClass("dependency");
+	span.attr("use", use);
+	span.text(use);
+	li.append(span);li.append("(");
+	var link = jQuery("<a>");
+	link.addClass("remove_dependency");
+	link.addClass("action");
+	link.attr("href", "");
+	link.text("remove");
+	link.click(data, remove_dependency);
+	li.append(link);li.append(")");
+	jQuery(".dependency_list").append(li);
 }
  
