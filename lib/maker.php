@@ -39,7 +39,17 @@ abstract class Projects_Maker {
         return $handlers;
     }
 
-
+    protected function run($file, $command, $code=FALSE) {
+        $log = $file->log_file();
+        $descs = array(
+            array('pipe', 'r'),
+            array('file', $log, 'w'),
+            array('file', $log, 'a'));
+        $proc = proc_open($command, $descs, $pipes, dirname($log));
+        if ($code) fwrite($pipes[0], $code);
+        $return = proc_close($proc);
+        return $return === 0;
+    }
     abstract public function name();
     abstract public function can_handle($file);
     abstract public function make($file);
