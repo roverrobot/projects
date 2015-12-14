@@ -25,7 +25,9 @@ class Projects_make_progress {
 
 	public function __construct($file, $history) {
 		$this->pid = getmypid();
-		$this->queue = array_keys($file->dependency());
+		if ($file->dependency())
+			$this->queue = array_keys($file->dependency());
+		else $this->queue = array();
 		$this->queue[] = $file->id();
 		$this->started = time();
 	}
@@ -322,7 +324,7 @@ abstract class Projects_file
 			$this->modified = TRUE;
 		$this->status = new Projects_make_progress($this, $history);
 		$history[] = $this->id;
-		foreach ($this->dependency as $dep => $auto) {
+		if ($this->dependency) foreach ($this->dependency as $dep => $auto) {
 			$this->status->progress();
 			$file = self::file($dep);
 			if (!$file) {
