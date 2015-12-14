@@ -36,8 +36,10 @@ function load_dir($dir, $name=false) {
     foreach ($subdirs as $subdir) load_dir($subdir, $action);
 }
 
-function find_executable($name) {
-    $paths = explode(PATH_SEPARATOR, getenv('PATH'));
+function find_executable($name, $extra_searchpaths = array()) {
+    if (is_string($extra_searchpaths))
+        $extra_searchpaths = explode(PATH_SEPARATOR, $extra_searchpaths);
+    $paths = array_merge(explode(PATH_SEPARATOR, getenv('PATH')), $extra_searchpaths);
     $exe = (isset($_SERVER["WINDIR"])) ? $name . '.exe' : $name;
 
     foreach ($paths as $path) {
