@@ -24,7 +24,7 @@ class Projects_editor_CodeMirror extends Projects_editor {
             require=\"$paths\" 
             editor=\"codemirror\" 
             mode=\"$highlight\">" . 
-            htmlspecialchars($this->code) . 
+            htmlspecialchars($this->code) . DOKU_LF .
             '</textarea>';
 	}
 }
