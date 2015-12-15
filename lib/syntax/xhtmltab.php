@@ -92,6 +92,25 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
 		$this->content->appendChild($this->loadElement($content));
 	}
 
+    private static function part(&$time, $count, $unit) {
+        $div = floor($time/$count);
+        $val = round($time - $div*$count);
+        $time = $div;
+        if ($val == 0) return '';
+        $result = $val . $unit;
+        if ($val>1) return $result . 's';
+        return $result;
+    }
+ 
+    private static function format_time($time) {
+        $sec = self::part($time, 60, ' second');
+        $min = self::part($time, 60, ' minute');
+        $hour = self::part($time, 24, ' hour');
+        $day = self::part($time, 7, ' day');
+        $week = self::part($time, $time+1, ' week');
+        return "$week $day $hour $min $sec";
+    }
+
 	public function __construct($parent, $file) {
 		global $ID;
 		global $REV;
@@ -127,6 +146,23 @@ class Projects_SummaryTab extends Projects_XHTMLTab {
 
 		$this->content = $this->newElement('div', array(
 			'id' => 'PROJECTS_content'));
+        if ($file->is_making()) {
+            $time = time() - $file->status()->started();
+            $content = '<div id="PROJECTS_progress">The file has been generating for ' . self::format_time($time) . 
+                ': ' . kill_button($file->id(), FALSE) . DOKU_LF;
+            foreach($file->status()->made() as $made) 
+                $content .= '<div class="success">' . html_wikilink($made) . '</div>' . DOKU_LF;
+            $content .= '<div class="notify">' . html_wikilink($file->status()->making()) . '</div>' . DOKU_LF;
+            foreach($file->status()->queue() as $queue) 
+                $content .= '<div class="info">' . html_wikilink($queue) . '</div>' . DOKU_LF;
+            $this->setContent($content . '</div>'); 
+        } else if (is_array($file->status())) {
+            $content = '<div>Error in file generation:' . DOKU_LF;
+            foreach($file->status() as $id => $errors)
+                foreach ($errors as $error)
+                    $content .= '<div class="error">' . html_wikilink($id) . ': ' . $error . '</div>' . DOKU_LF;
+            $this->setContent($content .  '</div>');
+        }
 		$this->root->appendChild($this->content);
 	}	
 }
@@ -158,7 +194,6 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 		parent::__construct($parent, 'Dependency');
 		$this->list = $this->newElement('ul', array('class' => 'dependency_list'));
 		$this->root->appendChild($this->list);
-
 		$this->editable = (!$REV && auth_quickaclcheck($ID) >= AUTH_EDIT);
 		if ($this->editable) {
 			$li = $this->newElement('li');
