@@ -40,18 +40,26 @@ abstract class Projects_Maker {
     }
 
     protected function run($file, $command, $code=FALSE) {
+        $dir = dirname(explode(' ', $command)[0]);
+        $paths = explode(PATH_SEPARATOR, getenv('PATH'));
+        $env = NULL;
+        if (!in_array($dir, $paths)) {
+            $paths[] = $dir;
+            $env = array('PATH' => implode(PATH_SEPARATOR, $paths));
+        }
         $log = $file->log_file();
         $descs = array(
             array('pipe', 'r'),
             array('file', $log, 'w'),
             array('file', $log, 'a'));
-        $proc = proc_open($command, $descs, $pipes, dirname($log));
+        $proc = proc_open($command, $descs, $pipes, dirname($log), $env);
         if ($code) fwrite($pipes[0], $code);
         $return = proc_close($proc);
         return $return === 0;
     }
     abstract public function name();
     abstract public function can_handle($file);
+    abstract public function auto_dependency($file); 
     abstract public function make($file);
 }
 
