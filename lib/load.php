@@ -47,5 +47,8 @@ function find_executable($name, $extra_searchpaths = array()) {
         if (file_exists($file) && is_file($file))
             return $file;
     }
+
+    if (!isset($_SERVER["WINDIR"]))
+        return trim(shell_exec("bash -l -c 'which $exe'"));
     return FALSE;
 }
