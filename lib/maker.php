@@ -57,6 +57,16 @@ abstract class Projects_Maker {
         $return = proc_close($proc);
         return $return === 0;
     }
+
+    public function dependence($id) {
+        $file = Projects_file::file($id);
+        if ($file) return $file;
+        $file = new Projects_file_generated($id);
+        $file->analyze();
+        if (!$file->maker()) return NULL;
+        return $file;
+    }
+
     abstract public function name();
     abstract public function can_handle($file);
     abstract public function auto_dependency($file); 
