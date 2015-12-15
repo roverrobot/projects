@@ -332,14 +332,10 @@ abstract class Projects_file
 		$history[] = $this->id;
 		if ($this->dependency) foreach ($this->dependency as $dep => $auto) {
 			$this->progress();
-			$file = self::file($dep);
+			$file = Projects_Maker::dependence($dep);
 			if (!$file) {
-				$file = new Projects_file_generated($dep);
-				$file->analyze();
-				if (!$file->maker()) {
-					$this->add_error('do not know how to make the dependence ' . html_wikilink($dep));
-					return $this->status;
-				}
+				$this->add_error('do not know how to make the dependence ' . html_wikilink($dep));
+				return $this->status;
 			}
 //			echo "<pre>"; var_dump($file); echo "</pre>";
 			$result = $file->make($history, !file_exists($file->file_path()));
