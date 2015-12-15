@@ -29,6 +29,11 @@ abstract class Projects_formatter {
     static public function xhtml($file) {
         if (is_subclass_of($file, 'Projects_file') && $file) {
             foreach (self::$_handlers as $handler) {
+                $mime = $file->mimetype();
+                if (!$mime) {
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo::file($file->file_path());
+                }
                 if ($handler->can_handle($file->mimetype())) {
                     $doc = $handler->format($file);
                     if ($doc) return $doc;
