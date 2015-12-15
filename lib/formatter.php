@@ -30,9 +30,9 @@ abstract class Projects_formatter {
         if (is_subclass_of($file, 'Projects_file') && $file) {
             foreach (self::$_handlers as $handler) {
                 $mime = $file->mimetype();
-                if (!$mime) {
+                if (!$mime && file_exists($file->file_path())) {
                     $finfo = new finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo::file($file->file_path());
+                    $mime = $finfo->file($file->file_path());
                 }
                 if ($handler->can_handle($file->mimetype())) {
                     $doc = $handler->format($file);
