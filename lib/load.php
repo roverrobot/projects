@@ -42,6 +42,9 @@ function find_executable($name, $extra_searchpaths = array()) {
     $paths = array_merge(explode(PATH_SEPARATOR, getenv('PATH')), $extra_searchpaths);
     $exe = (isset($_SERVER["WINDIR"])) ? $name . '.exe' : $name;
 
+    // add /usr/local/bin
+    if (!isset($_SERVER["WINDIR"]) && !in_array('/usr/local/bin', $paths))
+        $paths[] = '/usr/local/bin';
     foreach ($paths as $path) {
         $file = $path . DIRECTORY_SEPARATOR . $exe;
         if (file_exists($file) && is_file($file))
