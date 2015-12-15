@@ -302,10 +302,13 @@ abstract class Projects_file
 	}
 
 	public function rm() {
-		if (file_exists($this->file_path))
-			unlink($this->file_path);
+		$link = '';
+		if (@is_link($this->file_path))
+			$link = realpath(readlink($this->file_path));
+		@unlink($this->file_path);
 		$media = mediaFN($this->id);
-		if (file_exists($media)) unlink($media);
+		if (file_exists($media) && $link != realpath($media))
+			unlink($media);
 	}
 
 	protected function progress() {
@@ -421,7 +424,8 @@ class Projects_file_generated extends Projects_file
 
 	protected function is_modified($old) {
 		if (parent::is_modified($old)) return TRUE;
-		return (!$old || $this->maker != $old->maker());
+		if (!$old) return TRUE;
+		return ($this->maker != $old->maker());
 	}
 
 	protected function copy_from($old) {
@@ -491,7 +495,8 @@ class Projects_file_generated extends Projects_file
 
 	public function make($history, $force) {
 		// make the dependencies
-		if (is_array($this->status)) $force = TRUE;
+		if (is_array($this->status) || $this->status == PROJECTS_MODIFIED)
+			$force = TRUE;
 		$result = parent::make($history, $force);
 		if (is_array($result)) {
 			$this->status = $result;
@@ -499,7 +504,6 @@ class Projects_file_generated extends Projects_file
 			$this->save();
 			return $result;
 		}
-
 		// now the status has to be PROJECTS_MODIFIED, i.e., it needs to be made.
 		if (!$force && $date == $this->modified_date) {
 			$this->status = PROJECTS_MADE;
@@ -530,10 +534,16 @@ class Projects_file_generated extends Projects_file
     }
 
     public function analyze() {
-		if (!$this->maker) {
+    	$maker = NULL;
+		if ($this->maker) {
+			$maker = Projects_Maker::maker($this->maker);
+			if (!$maker->can_handle($this))
+				$maker = NULL;
+		}
+		if (!$maker) {
 			$makers = Projects_Maker::maker($this);
 			if ($makers) $maker = $makers[0];
-		} else $maker = Projects_Maker::maker($this->maker);
+		}
 		if ($maker) {
 			$this->maker = $maker->name();
 			$deps = $maker->auto_dependency($this);
