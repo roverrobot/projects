@@ -308,6 +308,14 @@ abstract class Projects_file
 		if (file_exists($media)) unlink($media);
 	}
 
+	protected function progress() {
+		if ($this->is_making() && $this->entertag) {
+			$this->status()->progress();
+			$this->modified = TRUE;
+			$this->save();
+		}
+	}
+
 	public function make($history, $force) {
 		// if it is currently being made, wait until it is done
 		if ($this->is_making())
@@ -320,18 +328,21 @@ abstract class Projects_file
 			return $this->status;
 		}
 		$date = $this->modified_date;
-		if ($this->status == PROJECTS_MODIFIED || $force)
-			$this->modified = TRUE;
 		$this->status = new Projects_make_progress($this, $history);
 		$history[] = $this->id;
 		if ($this->dependency) foreach ($this->dependency as $dep => $auto) {
-			$this->status->progress();
+			$this->progress();
 			$file = self::file($dep);
 			if (!$file) {
-				$this->add_error('do not know how to make the dependence ' . html_wikilink($dep));
-				return $this->status;
+				$file = new Projects_file_generated($dep);
+				$file->analyze();
+				if (!$file->maker()) {
+					$this->add_error('do not know how to make the dependence ' . html_wikilink($dep));
+					return $this->status;
+				}
 			}
-			$result = $file->make($history, FALSE);
+//			echo "<pre>"; var_dump($file); echo "</pre>";
+			$result = $file->make($history, !file_exists($file->file_path()));
 			if (is_array($result)) {
 				$this->status = $result;
 				$this->add_error('failed to generate ' . html_wikilink($dep));
@@ -339,7 +350,7 @@ abstract class Projects_file
 			}
 			if ($result > $date) $date = $result;
 		}
-		$this->status->progress();
+		$this->progress();
 		// make this file
 		return $date;
 	}
@@ -390,13 +401,11 @@ class Projects_file_source extends Projects_file
 		$result = parent::make($history, $force);
 		if (is_a($this->status, 'Projects_make_progress'))
 			$this->status = PROJECTS_MADE;
-		if (is_array($result)) {
+		else if (is_array($result))
 			$this->status = $result;
-			$this->modified = TRUE;
-			$this->save();
-			return $result;
-		}
-		if ($result < $this->modified_date) return $this->modified_date;
+		else if ($result < $this->modified_date) return $this->modified_date;
+		$this->modified = TRUE;
+		$this->save();
 		return $result;
 	}
 
@@ -408,7 +417,7 @@ class Projects_file_generated extends Projects_file
 
 	public function maker() { return $this->maker; }
 
-	public function __construct($id, $meta) {
+	public function __construct($id, $meta = array('type' =>'generated')) {
 		parent::__construct($id, $meta);
 		if (isset($meta['maker']))
 			$this->maker = $meta['maker'];
@@ -451,7 +460,15 @@ class Projects_file_generated extends Projects_file
 			foreach ($old->dependency() as $dep => $auto)
 				if (!$auto) $old_deps[] = $dep;
 		}
-		return $deps != $old_deps;
+		if ($deps != $old_deps) return TRUE;
+
+		$old_deps = $old->dependency();
+		$old_deps = ($old_deps)? array_keys($old_deps) : array();
+		if ($this->dependency) {
+			foreach ($this->dependency as $dep => $auto)
+				if ($auto && !in_array($dep, $old_deps)) return TRUE;
+		}
+		return FALSE;
 	}
 
 	public function content() {
@@ -488,7 +505,12 @@ class Projects_file_generated extends Projects_file
 		}
 
 		// now the status has to be PROJECTS_MODIFIED, i.e., it needs to be made.
-		if (!$this->modified) return $this->modified_date;
+		if (!$force && $date == $this->modified_date) {
+			$this->status = PROJECTS_MADE;
+			$this->modified = TRUE;
+			$this->save();
+			return $this->modified_date;
+		}
 		$this->rm();
 		$this->save();
 		if ($this->maker)
@@ -514,11 +536,14 @@ class Projects_file_generated extends Projects_file
     public function analyze() {
 		if (!$this->maker) {
 			$makers = Projects_Maker::maker($this);
-			if ($makers) {
-				$maker = $makers[0];
-				$this->maker = $maker->name();
-			} else $this->maker = '';
+			if ($makers) $maker = $makers[0];
 		} else $maker = Projects_Maker::maker($this->maker);
+		if ($maker) {
+			$this->maker = $maker->name();
+			$deps = $maker->auto_dependency($this);
+			foreach ($deps as $dep)
+				$this->dependency[$dep] = TRUE;
+		} else $this->maker = '';
     }
 
 }
