@@ -12,10 +12,14 @@ class Projects_Maker_Media extends Projects_Maker
 
     public function make($file) {
         $media = mediaFN($file->id());
-        $path = $file->file_patch();
+        $path = $file->file_path();
 
         if (file_exists($path)) unlink($path);
         symlink($media, $path);
         return true;
+    }
+
+    public function auto_dependency($file) {
+        return array();
     }
 }

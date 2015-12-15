@@ -3,9 +3,11 @@
 class Projects_Maker_Latexmk extends Projects_Maker
 {
     protected $latexmk = '';
+    protected $bash = '';
 
     public function __construct() {
         $this->latexmk = find_executable("latexmk");
+        $this->bash = find_executable("bash");
     }
 
     public function name() { return "latexmk"; }
@@ -15,18 +17,28 @@ class Projects_Maker_Latexmk extends Projects_Maker
     }
 
     public function can_handle($file) {
+        if (!$this->bash) return FALSE;
         if (!$this->latexmk) return FALSE;
-        if (strtolower(substr($id, -4)) != '.pdf') return FALSE;
+        if (strtolower(substr($file->id(), -4)) != '.pdf') return FALSE;
         if (trim($file->code())) return FALSE;
-        $tex = $this->main_latex_file($id);
+        $tex = $this->main_latex_file($file->id());
         $texfile = Projects_file::file($tex);
         if ($texfile) return TRUE;
         return FALSE;
     }
 
     public function make($file) {
+        $tex = $this->main_latex_file($file->id());
+        $texfile = Projects_file::file($tex);
         $path = $texfile->file_path();
         $command = $this->latexmk . " -pdf $path";
-        return $this->run($file, $command);
+        return $this->run($file, $this->bash . ' -l', $command);
+    }
+
+    public function auto_dependency($file) {
+        $tex = $this->main_latex_file($file->id());
+        $texfile = Projects_file::file($tex);
+        if ($texfile) return array($texfile->id());
+        return array(); 
     }
 }

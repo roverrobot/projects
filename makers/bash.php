@@ -24,4 +24,8 @@ class Projects_Maker_Bash extends Projects_Maker
         } else $command = $this->bash . ' -l';
         return $this->run($file, $command, $code);
     }
+
+    public function auto_dependency($file) {
+        return array();
+    }
 }
