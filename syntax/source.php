@@ -13,7 +13,8 @@ class syntax_plugin_projects_source extends syntax_projectfile
 
     protected function createTabs($file) {
         parent::createTabs($file);
-    	$editor = Projects_editor::editor($file->id(), $file->code(), $file->highlight());
+    	$editor = Projects_Editor_Manager::manager()->editor(
+    		$file->id(), $file->code(), $file->highlight());
     	$editor->read_only = $this->read_only();
     	$content = $editor->xhtml('content', 'savecontent');
         $summary = $this->tabs->tab('Summary');

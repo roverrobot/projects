@@ -391,7 +391,7 @@ class Projects_file_source extends Projects_file
 	}
 
     public function analyze() {
-        $deps = Projects_Analyzer::auto_dependency($this);
+        $deps = Projects_Analyzer_Manager::manager()->auto_dependency($this);
         foreach ($deps as $dep)
 			$this->dependency[$dep] = TRUE;
     }
@@ -514,7 +514,7 @@ class Projects_file_generated extends Projects_file
 		$this->rm();
 		$this->save();
 		if ($this->maker)
-			$maker = Projects_Maker::maker($this->maker);
+			$maker = Projects_Maker_Manager::manager()->maker($this->maker);
 		else $maker = NULL;
 		if (!$maker)
 			$this->add_error('no available maker');
@@ -524,7 +524,7 @@ class Projects_file_generated extends Projects_file
 			$this->modified_date = time();
 			$this->status = PROJECTS_MADE;
 			// analyze the content for autodependency
-	        $deps = Projects_Analyzer::auto_dependency($this);
+	        $deps = Projects_Analyzer_Manager::manager()->auto_dependency($this);
 	        foreach ($deps as $dep)
 				$this->dependency[$dep] = TRUE;
 		}
@@ -536,12 +536,12 @@ class Projects_file_generated extends Projects_file
     public function analyze() {
     	$maker = NULL;
 		if ($this->maker) {
-			$maker = Projects_Maker::maker($this->maker);
+			$maker = Projects_Maker_Manager::manager()->maker($this->maker);
 			if (!$maker->can_handle($this))
 				$maker = NULL;
 		}
 		if (!$maker) {
-			$makers = Projects_Maker::maker($this);
+			$makers = Projects_Maker_Manager::manager()->maker($this);
 			if ($makers) $maker = $makers[0];
 		}
 		if ($maker) {

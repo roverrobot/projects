@@ -222,12 +222,12 @@ class Projects_DependencyTab extends Projects_XHTMLTab {
 class Projects_RecipeTab extends Projects_XHTMLTab {
  	public function __construct($parent, $file, $read_only) {
 		parent::__construct($parent, 'Recipe');
-    	$editor = Projects_editor::editor('', $file->code(), $file->highlight());
+    	$editor = Projects_Editor_Manager::manager()->editor('', $file->code(), $file->highlight());
     	$editor->read_only = $read_only;
     	$maker = $this->newElement('div', array(), 'Maker: ');
     	$this->root->appendChild($maker);
     	if (auth_quickaclcheck($file->id()) >= DOKU_EDIT) {
-    		$makers = Projects_maker::maker($file);
+    		$makers = Projects_Maker_Manager::manager()->maker($file);
     		if (count($makers) > 1) {
 	    		$select = $this->newElement('select', array('id' => 'PROJECTS_maker', 'name' => 'maker'));
 	    		$maker->appendChild($select);
@@ -258,7 +258,7 @@ class Projects_LogTab extends Projects_XHTMLTab {
 		parent::__construct($parent, 'Log');
 		$log = $file->log();
 		if (!$log) return;
-    	$editor = Projects_editor::editor($file->log_file(), $file->log(), '');
+    	$editor = Projects_Editor_Manager::manager()->editor($file->log_file(), $file->log(), '');
     	$editor->read_only = TRUE;
     	$content = $editor->xhtml('log', 'show');
     	$this->root->appendChild($this->loadElement($content));

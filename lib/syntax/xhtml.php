@@ -24,14 +24,12 @@ function xhtml_action($name, $action, $title,
 
 function download_button($id) {
     $link = ml($id);
-    return '<span class="action"><a href="javascript: window.location.href=' .
-    "'$link'" . '">download</a> </span>';
+    return "<span class=\"action\"><a href=\"$link\">download</a> </span>";
 }
 
 function manage_files_button($id) {
-    $link = wl($id, array('do' => 'manage_files'));
-    return '<span class="action"><a href="javascript: window.location.href=' .
-    "'$link'" . '">manage files</a> </span>';
+    $link = wl($id, array('do' => 'projects.manage_files'));
+    return "<span class=\"action\"><a href=\"$link\">manage files</a> </span>";
 }
 
 function delete_button($id) {
@@ -43,11 +41,11 @@ function delete_button($id) {
 
 function make_button($id, $remake=FALSE) {
     $title = ($remake) ? 'remake' : 'make';
-    return xhtml_action($id, 'make', $title, array('id' => $id, 'remake' => $remake));
+    return xhtml_action($id, 'projects.make', $title, array('id' => $id, 'remake' => $remake));
 }
 
 function kill_button($id) {
-    return xhtml_action('cancel', 'kill', 'cancel generation', array('id' => $id));
+    return xhtml_action('cancel', 'projects.kill', 'cancel generation', array('id' => $id));
 }
 
 function create_button($id, $type) {

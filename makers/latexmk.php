@@ -6,8 +6,8 @@ class Projects_Maker_Latexmk extends Projects_Maker
     protected $bash = '';
 
     public function __construct() {
-        $this->latexmk = find_executable("latexmk");
-        $this->bash = find_executable("bash");
+        $this->latexmk = self::find_executable("latexmk");
+        $this->bash = self::find_executable("bash");
     }
 
     public function name() { return "latexmk"; }

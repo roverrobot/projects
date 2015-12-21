@@ -3,5 +3,5 @@ author Junling Ma
 email  junlingm@gmail.com
 date   2015-12-14
 name   Projects plugin
-Idesc   Makes dokuwiki a project workspace
+desc   Makes dokuwiki a project workspace
 url    https://www.dokuwiki.org/plugin:projects

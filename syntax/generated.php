@@ -15,7 +15,7 @@ class syntax_plugin_projects_generated extends syntax_projectfile
     protected function content($file) {
         if ($file->status() === PROJECTS_MODIFIED)
             return '<div>The file is not generated yet: ' . make_button($file->id(), FALSE) . '</div>'; 
-        $content = Projects_formatter::xhtml($file);
+        $content = Projects_Formatter_Manager::manager()->xhtml($file);
         return $content;
     }
 

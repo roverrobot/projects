@@ -2,41 +2,65 @@
 
 define(MAKER_ROOT, dirname(__FILE__) . '/../makers/');
 
-require_once dirname(__FILE__) . '/load.php';
 require_once dirname(__FILE__) . '/analyzer.php';
 
-abstract class Projects_Maker {
-    static private $_handlers = array();
+class Projects_Maker_Manager extends Doku_Component_Manager {
+    private $makers = array();
+    private static $manager = NULL;
 
-    static public function load() {
-        $old_classes = get_declared_classes();
-        // load the dirs
-        load_dir(MAKER_ROOT);
-
-        // get an array of newly defined classes from the includes
-        $classes = get_declared_classes();
-        $new_classes = array_diff($classes, $old_classes);
-
-        foreach ($new_classes as $class)
-            if (is_subclass_of($class, 'Projects_Maker') &&
-                !is_abstract_class($class)) {
-                $handler = new $class;
-                self::$_handlers[$handler->name()] = $handler;
-            }
+    public static function manager() {
+        if (!self::$manager)
+            self::$manager = new Projects_Maker_Manager;
+        return self::$manager;
     }
 
-    static public function maker($request) {
+    protected function handle($class) {
+        if (is_subclass_of($class, 'Projects_Maker')) {
+            $handler = new $class;
+            $this->makers[$handler->name()] = $handler;
+        }
+    }
+
+    public function maker($request) {
         if (is_string($request)) {
             if (!isset(self::$_handlers[$request])) return FALSE;
             return self::$_handlers[$request];
         }
         $handlers = array();
         if (is_a($request, 'Projects_file')) {
-            foreach (self::$_handlers as $handler)
+            foreach ($this->makers as $handler)
                 if ($handler->can_handle($request))
                     array_push($handlers, $handler);
         }
         return $handlers;
+    }
+
+    public function __construct() {
+        $this->load(MAKER_ROOT);
+    }
+}
+
+abstract class Projects_Maker {
+
+    static public function find_executable($name, $extra_searchpaths = array()) {
+        if (is_string($extra_searchpaths))
+            $extra_searchpaths = explode(PATH_SEPARATOR, $extra_searchpaths);
+        $paths = array_merge(explode(PATH_SEPARATOR, getenv('PATH')), $extra_searchpaths);
+        $exe = (isset($_SERVER["WINDIR"])) ? $name . '.exe' : $name;
+
+        // add /usr/local/bin
+        if (!isset($_SERVER["WINDIR"]) && !in_array('/usr/local/bin', $paths))
+            $paths[] = '/usr/local/bin';
+        foreach ($paths as $path) {
+            $file = $path . DIRECTORY_SEPARATOR . $exe;
+            if (file_exists($file) && is_file($file))
+                return $file;
+        }
+
+        // check if it is in the PATH defined in bash_rc
+        if (!isset($_SERVER["WINDIR"]))
+            return trim(shell_exec("bash -l -c 'which $exe'"));
+        return FALSE;
     }
 
     protected function run($file, $command, $code=FALSE) {
@@ -58,7 +82,7 @@ abstract class Projects_Maker {
         return $return === 0;
     }
 
-    public function dependence($id) {
+    static public function dependence($id) {
         $file = Projects_file::file($id);
         if ($file) return $file;
         $file = new Projects_file_generated($id);
@@ -72,6 +96,4 @@ abstract class Projects_Maker {
     abstract public function auto_dependency($file); 
     abstract public function make($file);
 }
-
-Projects_Maker::load();
 

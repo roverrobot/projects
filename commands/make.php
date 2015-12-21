@@ -1,12 +1,13 @@
 <?php
 
 define(PROJECTS_RUNMAKE, dirname(__FILE__) . '/../lib/runmake.php');
+require_once dirname(__FILE__) . '/../lib/maker.php';
 
 class Action_Make extends Doku_Action {
     protected static $PHP = '';
 
     public static function findPHP() {
-        self::$PHP = find_executable('php');
+        self::$PHP = Maker::find_executable('php');
     }
 
     public function action() { return "make"; }

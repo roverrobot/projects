@@ -5,7 +5,7 @@ class Projects_Maker_Pdf2png extends Projects_Maker
     protected $convert = '';
 
     public function __construct() {
-        $this->convert = find_executable("convert");
+        $this->convert = self::find_executable("convert");
     }
 
     public function name() { return "pdf2png"; }

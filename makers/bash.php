@@ -5,7 +5,7 @@ class Projects_Maker_Bash extends Projects_Maker
     protected $bash = '';
 
     public function __construct() {
-        $this->bash = find_executable('bash');
+        $this->bash = self::find_executable('bash');
     }
 
     public function name() { return "bash"; }

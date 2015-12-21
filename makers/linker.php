@@ -4,7 +4,7 @@ class Projects_Maker_Linker extends Projects_Maker {
 	protected $ld = '';
 
 	public function __construct() {
-		$this->ld = find_executable('ld');
+		$this->ld = self::find_executable('ld');
 	}
 
 	/**

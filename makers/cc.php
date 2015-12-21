@@ -5,8 +5,8 @@ class Projects_Maker_CC extends Projects_Maker {
     protected $exts = array('.c' => 'cc', '.cpp' => 'cxx', '.cxx' => 'cxx', '.cc' => 'cxx');
 
     public function __construct() {
-        $this->compilers['cc'] = find_executable('cc');
-        $this->compilers['cxx'] = find_executable('c++');
+        $this->compilers['cc'] = self::find_executable('cc');
+        $this->compilers['cxx'] = self::find_executable('c++');
     }
 	/**
 	 * The name of the rule, a human readable string, a unique identifier

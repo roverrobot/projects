@@ -2,35 +2,27 @@
 
 define(ANALYZER_ROOT, dirname(__FILE__).'/../analyzers/');
 
-require_once dirname(__FILE__) . '/load.php';
+class Projects_Analyzer_Manager extends Doku_Component_Manager {
+    private $analyzers = array();
+    private static $manager = NULL;
 
-abstract class Projects_Analyzer {
-    abstract public function name();
-    abstract public function can_handle($file);
-    abstract public function analyze($file);
-
-    static private $_handlers = array();
-
-    static public function load() {
-        $old_classes = get_declared_classes();
-        // load the dirs
-        load_dir(ANALYZER_ROOT);
-
-        // get an array of newly defined classes from the includes
-        $classes = get_declared_classes();
-        $new_classes = array_diff($classes, $old_classes);
-
-        foreach ($new_classes as $class)
-            if (is_subclass_of($class, 'Projects_Analyzer')) {
-                $handler = new $class;
-                self::$_handlers[$handler->name()] = $handler;
-            }
+    public static function manager() {
+        if (!self::$manager)
+            self::$manager = new Projects_Analyzer_Manager;
+        return self::$manager;
     }
 
-    static public function auto_dependency($file) {
+    protected function handle($class) {
+        if (is_subclass_of($class, 'Projects_Analyzer')) {
+            $handler = new $class;
+            $this->analyzers[$handler->name()] = $handler;
+        }
+    }
+
+    public function auto_dependency($file) {
         $deps = array();
         if (is_subclass_of($file, 'Projects_file') && $file) {
-            foreach (self::$_handlers as $handler) {
+            foreach ($this->analyzers as $handler) {
                 if ($handler->can_handle($file)) {
                     $new = $handler->analyze($file);
                     if ($new && is_array($new)) $deps = array_merge($deps, $new);
@@ -39,6 +31,16 @@ abstract class Projects_Analyzer {
         }
         return $deps;
     }
+
+    public function __construct() {
+        $this->load(ANALYZER_ROOT);
+    }
+}
+
+abstract class Projects_Analyzer {
+    abstract public function name();
+    abstract public function can_handle($file);
+    abstract public function analyze($file);
 
     protected static function absoluteID($ns, $name) {
         if ($name[0] == '.') {
@@ -58,5 +60,3 @@ abstract class Projects_Analyzer {
     }
 
 }
-
-Projects_Analyzer::load();
