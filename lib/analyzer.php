@@ -2,6 +2,10 @@
 
 define(ANALYZER_ROOT, dirname(__FILE__).'/../analyzers/');
 
+if (!class_exists('Doku_Component_Manager')) {
+    require_once dirname(__FILE__) . '/../../components/lib/component_manager.php';
+}
+
 class Projects_Analyzer_Manager extends Doku_Component_Manager {
     private $analyzers = array();
     private static $manager = NULL;

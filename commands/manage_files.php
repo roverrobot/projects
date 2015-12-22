@@ -34,7 +34,7 @@ class Render_Manage_File extends Doku_Action_Renderer {
 
         echo '<h1>Source files</h1>' . DOKU_LF;
         echo '<ul>' . DOKU_LF;
-        echo '<li>' . create_button($ID, 'source') . '</li>' . DOKU_LF;
+        echo '<li>' . create_button('source') . '</li>' . DOKU_LF;
         foreach ($source as $id => $file) {
             echo '<li>' . html_wikilink($id) . ': ' .
                 download_button($id) . ', ' .
@@ -45,7 +45,7 @@ class Render_Manage_File extends Doku_Action_Renderer {
 
         echo '<h1>Generated files</h1>' . DOKU_LF;
         echo '<ul>' . DOKU_LF;
-        echo '<li>' . create_button($ID, 'generated') . '</li>' . DOKU_LF;
+        echo '<li>' . create_button('generated') . '</li>' . DOKU_LF;
         foreach ($generated as $id => $file) {
             $make = make_button($id, $file->status() == PROJECTS_MADE);
             echo '<li>' . html_wikilink($id) . ': ' .

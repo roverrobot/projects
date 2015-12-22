@@ -7,7 +7,7 @@ class Action_Make extends Doku_Action {
     protected static $PHP = '';
 
     public static function findPHP() {
-        self::$PHP = Maker::find_executable('php');
+        self::$PHP = Projects_Maker::find_executable('php');
     }
 
     public function action() { return "make"; }

@@ -46,6 +46,14 @@ jQuery(function() {
     });
 });
 
+// set action links
+jQuery(function() {
+	jQuery(".action_link").click(function() {
+		jQuery(this).parent().parent().submit();
+		return false;
+	});
+});
+
 // load editors
 jQuery(function() {
 	var files = jQuery("textarea[editor]").map(function() {
